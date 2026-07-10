@@ -11,7 +11,21 @@ struct ScenarioEvent {
 
     let second: Int
 
-    let motion: MotionState
+    let motion: Int
+    
+    enum RoomEvent {
+
+        case personEntered
+
+        case personLeft
+
+        case roomStateChanged(RoomState)
+
+        case emergency(EmergencyState)
+
+        case vitalUpdated
+
+    }
 
     let heartRate: Int
 
