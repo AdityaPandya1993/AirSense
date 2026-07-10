@@ -1,0 +1,20 @@
+//
+//  DeviceState.swift
+//  AirSense
+//
+//  Created by ADITYA PANDYA on 09/07/26.
+//
+
+import Foundation
+
+enum DeviceState {
+
+    case disconnected
+
+    case searching
+
+    case connecting
+
+    case connected
+
+}
