@@ -14,3 +14,17 @@ protocol AirSenseEngine: AnyObject {
     func stop()
 
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+

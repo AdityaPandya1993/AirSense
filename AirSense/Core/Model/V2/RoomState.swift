@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum RoomState {
+enum RoomState : String , Codable{
 
     case empty
 

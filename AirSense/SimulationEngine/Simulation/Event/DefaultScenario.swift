@@ -17,7 +17,7 @@ enum DefaultScenario {
 
             ScenarioEvent(
                 second: 1,
-                motion: .standing,
+                motion: MotionState.standing,
                 heartRate: 72,
                 breathingRate: 14,
                 position: Coordinate(x: 2, y: 2)
@@ -25,7 +25,7 @@ enum DefaultScenario {
 
             ScenarioEvent(
                 second: 6,
-                motion: .walking,
+                motion: MotionState.walking,
                 heartRate: 78,
                 breathingRate: 16,
                 position: Coordinate(x: 3, y: 2)
@@ -33,7 +33,7 @@ enum DefaultScenario {
 
             ScenarioEvent(
                 second: 11,
-                motion: .waving,
+                motion: MotionState.waving,
                 heartRate: 82,
                 breathingRate: 18,
                 position: Coordinate(x: 4, y: 2)

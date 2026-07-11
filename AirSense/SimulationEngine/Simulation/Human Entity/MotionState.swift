@@ -8,7 +8,7 @@
 
 import Foundation
 
-enum MotionState {
+enum MotionState: Equatable {
 
     case standing
     case walking

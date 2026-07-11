@@ -6,33 +6,57 @@
 //
 
 import Foundation
-import CoreGraphics
 
-struct DetectedPerson: Identifiable {
+struct DetectedPerson: Identifiable, Equatable {
+
+    // MARK: - Identity
 
     let id: UUID
 
-    var heartRate: Int
+    var personID: String
+    var displayName: String
 
+    // MARK: - Tracking
+
+    var isTracked: Bool
+    var confidence: Double
+    var lastSeen: Date
+
+    // MARK: - Health
+
+    var heartRate: Int
     var breathingRate: Double
 
-    var position: CGPoint
+    // MARK: - Activity
 
-    var confidence: Double
+    var motion: MotionState
 
-    init(
-        id: UUID = UUID(),
-        heartRate: Int,
-        breathingRate: Double,
-        position: CGPoint,
-        confidence: Double
-    ) {
+    // MARK: - Position
 
-        self.id = id
-        self.heartRate = heartRate
-        self.breathingRate = breathingRate
-        self.position = position
-        self.confidence = confidence
-    }
+    var position: Coordinate
+
+    // MARK: - Emergency
+
+    var isEmergency: Bool
+
+}
+
+// MARK: - Default
+
+extension DetectedPerson {
+
+    static let unknown = DetectedPerson(
+        id: UUID(),
+        personID: "P001",
+        displayName: "Unknown",
+        isTracked: false,
+        confidence: 0,
+        lastSeen: Date(),
+        heartRate: 0,
+        breathingRate: 0,
+        motion: MotionState.standing,
+        position: Coordinate(x: 0, y: 0),
+        isEmergency: false
+    )
 
 }

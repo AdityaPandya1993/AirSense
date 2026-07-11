@@ -7,16 +7,14 @@
 
 import Foundation
 
-enum EmergencyState {
+
+enum EmergencyState: String, Codable {
 
     case none
-
     case fallDetected
-
     case abnormalHeartRate
-
     case abnormalBreathing
-
-    case emergency
+    case noMovement
+    case sos
 
 }

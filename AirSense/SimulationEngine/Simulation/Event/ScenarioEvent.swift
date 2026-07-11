@@ -11,7 +11,7 @@ struct ScenarioEvent {
 
     let second: Int
 
-    let motion: Int
+    let motion: MotionState
     
     enum RoomEvent {
 

@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct Coordinate {
+struct Coordinate : Equatable , Codable{
 
     var x: Double
 
