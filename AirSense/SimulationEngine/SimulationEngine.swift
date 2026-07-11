@@ -7,28 +7,57 @@
 
 import Foundation
 
+//
+//  SimulationEngine.swift
+//  AirSense
+//
+
+import Foundation
+
 final class SimulationEngine {
 
     // MARK: - Properties
 
     private var timer: Timer?
-    
+
     weak var delegate: SimulationEngineDelegate?
-    
+
     private let stateMachine = SimulationStateMachine()
-    
     private let csiGenerator = CSIGenerator()
-    
     private let signalBuffer = SignalBuffer()
-    
     private let statisticsCalculator = StatisticsCalculator()
+
+    private var persons: [DetectedPerson] = []
+    private var pets: [DetectedPet] = []
 
     private var human: HumanEntity!
 
     // MARK: - Start
 
     func start() {
-        
+
+        persons = [
+
+            PersonFactory.person(
+                id: "P001",
+                name: "Aditya",
+                x: 2,
+                y: 2
+            ),
+
+            PersonFactory.person(
+                id: "P002",
+                name: "Guest",
+                x: 5,
+                y: 2
+            )
+
+        ]
+
+        pets = [
+            PetFactory.dog()
+        ]
+
         createHuman()
 
         timer = Timer.scheduledTimer(
@@ -37,22 +66,18 @@ final class SimulationEngine {
         ) { [weak self] _ in
 
             self?.update()
-            
 
         }
-
     }
-
-    // MARK: - Stop
 
     func stop() {
 
         timer?.invalidate()
         timer = nil
-
     }
-
 }
+
+// MARK: - Human
 
 extension SimulationEngine {
 
@@ -62,29 +87,60 @@ extension SimulationEngine {
 
             name: "Aditya",
 
-            position: PositionComponent(position: Coordinate(x: 2, y: 2)),
+            position: PositionComponent(
+                position: Coordinate(x: 2, y: 2)
+            ),
 
-            heart: HeartComponent(bpm: 72),
+            heart: HeartComponent(
+                bpm: 72
+            ),
 
-            breathing: BreathingComponent(rate: 14),
+            breathing: BreathingComponent(
+                rate: 14
+            ),
 
-            motion: MotionComponent(state: .standing),
-            
-            activity: ActivityComponent(state: .idle)
+            motion: MotionComponent(
+                state: .standing
+            ),
 
+            activity: ActivityComponent(
+                state: .idle
+            )
         )
-
     }
-
 }
+
+// MARK: - Room
+
+extension SimulationEngine {
+
+    private func updateRoom() {
+
+        guard !persons.isEmpty else {
+            return
+        }
+
+        persons[0].heartRate = human.heart.bpm
+        persons[0].breathingRate = human.breathing.rate
+        persons[0].motion = human.motion.state
+        persons[0].position = human.position.position
+        persons[0].lastSeen = Date()
+        persons[0].isTracked = true
+        persons[0].confidence = 1.0
+        persons[0].isEmergency = stateMachine.currentState == .alert
+
+        RoomManager.shared.updatePerson(persons[0])
+    }
+}
+
+// MARK: - Update
 
 extension SimulationEngine {
 
     private func update() {
+
         stateMachine.moveToNextState()
-        print("Current State : \(stateMachine.currentState)")
-        print(signalBuffer.packets.count)
-        
+
         switch stateMachine.currentState {
 
         case .idle:
@@ -118,20 +174,8 @@ extension SimulationEngine {
             human.motion.state = .standing
             human.heart.bpm = 125
             human.breathing.rate = 28
-
         }
 
-        print("----------------------------")
-        print("""
-        -------------------------
-        State      : \(stateMachine.currentState)
-        Motion     : \(human.motion.state)
-        Heart BPM  : \(human.heart.bpm)
-        Breathing  : \(human.breathing.rate)
-        Position   : \(human.position.position)
-        -------------------------
-        """)
-        
         let signal = HumanSignal(
             motion: human.motion.state,
             heartRate: human.heart.bpm,
@@ -140,48 +184,27 @@ extension SimulationEngine {
 
         let frame = csiGenerator.generate(signal: signal)
 
-        let allValues = frame.packets.flatMap { $0.subcarriers }
-
-       // let average = allValues.reduce(0, +) / Double(allValues.count)
-
-        let values =
-        frame.packets.flatMap {
-
+        let values = frame.packets.flatMap {
             $0.subcarriers
-
         }
 
-        let statistics =
-        statisticsCalculator.calculate(
-            from: values
-        )
+        let statistics = statisticsCalculator.calculate(from: values)
 
         print("""
-
-        Mean : \(String(format: "%.2f", statistics.mean))
-
-        Variance : \(String(format: "%.2f", statistics.variance))
-
-        Std Dev : \(String(format: "%.2f", statistics.standardDeviation))
-
-        Min : \(String(format: "%.2f", statistics.minimum))
-
-        Max : \(String(format: "%.2f", statistics.maximum))
-
+        Mean : \(statistics.mean)
+        Variance : \(statistics.variance)
+        Std Dev : \(statistics.standardDeviation)
         """)
-        
-        print("First 10 Subcarriers \(frame.packets.first!.subcarriers.prefix(10))")
-        
-        
 
         frame.packets.forEach {
             signalBuffer.append($0)
         }
-        
+
+        updateRoom()
+
         delegate?.simulationDidUpdate(
             human,
             csiFrame: frame
         )
     }
-
 }
