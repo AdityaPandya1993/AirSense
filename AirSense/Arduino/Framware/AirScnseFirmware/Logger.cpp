@@ -5,7 +5,11 @@ void Logger::begin()
 {
     Serial.begin(SERIAL_BAUD_RATE);
 
-    delay(1000);
+    delay(6000);
+
+    Serial.println("Aditya AAAA");
+    Serial.println("Aditya BBBBB");
+    Serial.println("Aditya CCCC");
 
     Serial.println();
     Serial.println("================================");

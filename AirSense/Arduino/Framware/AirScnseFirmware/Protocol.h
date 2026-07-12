@@ -2,35 +2,35 @@
 //  Protocol.h
 //  AirSense Firmware
 //
-//  AirSense Serial Protocol v1
+//  AirSense Communication Protocol v1.0
 //
 
 #ifndef PROTOCOL_H
 #define PROTOCOL_H
 
-//==================================================
-// Packet
-//==================================================
+#include <Arduino.h>
 
-#define ASP_BEGIN          "BEGIN"
-#define ASP_END            "END"
+enum class MessageType
+{
+    Heartbeat,
+    DeviceInfo,
+    Person,
+    Pet,
+    CSI,
+    Alert
+};
 
-//==================================================
-// Keys
-//==================================================
+struct HeartbeatPacket
+{
+    String deviceName;
 
-#define ASP_DEVICE         "DEVICE"
-#define ASP_FIRMWARE       "FW"
-#define ASP_STATUS         "STATUS"
-#define ASP_UPTIME         "UPTIME"
-#define ASP_HEAP           "HEAP"
+    String firmwareVersion;
 
-#define ASP_PERSONS        "PERSONS"
-#define ASP_DOGS           "DOGS"
+    String status;
 
-#define ASP_HEART          "HEART"
-#define ASP_BREATH         "BREATH"
+    uint32_t uptime;
 
-#define ASP_ROOM_TEMP      "ROOM_TEMP"
+    uint32_t freeHeap;
+};
 
 #endif
