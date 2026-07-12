@@ -59,9 +59,10 @@ class DashboardVC: NSViewController, SimulationEngineDelegate {
         //loadDashboard()
         //startTimer()
         simulation.delegate = self
-        simulation.start()
-
-        startGraphTimer()
+//        simulation.start()
+//        startGraphTimer()
+        ASSerialManager.shared.start()
+        
         
         
     }
