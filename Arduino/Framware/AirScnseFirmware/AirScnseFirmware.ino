@@ -34,22 +34,24 @@ void setup()
     Logger::info("Device Model Created");
 
     SerialManager::begin();
+
+    
 }
 
 void loop()
 {
-    if (millis() - lastHeartbeat >= HEARTBEAT_INTERVAL)
+   if (Serial.available())
+{
+    String message = Serial.readStringUntil('\n');
+
+    message.trim();
+
+    if (message == "PING")
     {
-        lastHeartbeat = millis();
-
-       HeartbeatPacket packet;
-
-        packet.deviceName = DEVICE_NAME;
-        packet.firmwareVersion = FIRMWARE_VERSION;
-        packet.status = "READY";
-        packet.uptime = millis() / 1000;
-        packet.freeHeap = ESP.getFreeHeap();
-
-        SerialManager::sendHeartbeat(packet);
+        Serial.println("PONG");
     }
 }
+}
+
+
+

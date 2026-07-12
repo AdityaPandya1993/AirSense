@@ -10,12 +10,9 @@ import Foundation
 struct ASSerialDevice
 {
     let portName: String
-
-    let vendorID: Int
-
-    let productID: Int
-
-    let manufacturer: String
-
+    let path: String
+    let vendorID: Int?
+    let productID: Int?
+    let manufacturer: String?
     let serialNumber: String?
 }

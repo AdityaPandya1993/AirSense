@@ -59,11 +59,64 @@ class DashboardVC: NSViewController, SimulationEngineDelegate {
         //loadDashboard()
         //startTimer()
         simulation.delegate = self
-//        simulation.start()
-//        startGraphTimer()
-        ASSerialManager.shared.start()
+        //        simulation.start()
+        //        startGraphTimer()
+        //ASSerialManager.shared.discoverDevices()
         
         
+        setupUI()
+        
+        //Port Open And close end there retailed inforamtion
+        let port = ASSerialPort()
+        
+        port.configure(devicePath: "/dev/cu.usbmodem141101")
+        
+        do
+        {
+            try port.open()
+            
+            print("✅ Native Port Open Success")
+            
+            port.close()
+            
+            print("✅ Port Closed")
+            
+        }
+        catch
+        {
+            print(error)
+        }
+        
+        //Write
+
+        port.configure(devicePath: "/dev/cu.usbmodem141101")
+        
+
+        do
+        {
+            try port.open()
+
+            let message = "PING\n"
+
+            try port.write(Data(message.utf8))
+
+            print("✅ PING Sent")
+            
+            //Read
+            let data = try port.read(timeout: 500.0)
+
+        if let text = String(data: data, encoding: .utf8)
+        {
+            print("📥 Received")
+            print(text)
+        }
+
+            port.close()
+        }
+        catch
+        {
+            print(error)
+        }
         
     }
     
@@ -167,3 +220,4 @@ extension DashboardVC {
     }
 
 }
+
