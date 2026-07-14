@@ -10,6 +10,8 @@
 #include "DeviceInfo.h"
 #include "Protocol.h"
 #include "SerialManager.h"
+#include "DeviceController.h"
+#include "SimulationEngine.h"
 
 unsigned long lastHeartbeat = 0;
 
@@ -35,23 +37,27 @@ void setup()
 
     SerialManager::begin();
 
-    
+    DeviceController::shared().setPersonCount(2);
+
+    DeviceController::shared().setMotion("Walking");
+
+    DeviceController::shared().setHeartRate(81);
+
+    DeviceController::shared().setBreathing(18);
 }
 
 void loop()
 {
-   if (Serial.available())
-{
-    String message = Serial.readStringUntil('\n');
+    SimulationEngine::update();
+    
+    SerialManager::processIncomingCommand();
 
-    message.trim();
-
-    if (message == "PING")
+    if (millis() - lastHeartbeat >= 1000)
     {
-        Serial.println("PONG");
+        lastHeartbeat = millis();
+
+        SerialManager::sendHeartbeat();
     }
 }
-}
-
 
 

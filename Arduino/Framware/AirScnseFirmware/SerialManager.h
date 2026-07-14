@@ -11,13 +11,26 @@
 
 class SerialManager
 {
-public:
+
+    private:
+
+    static void handlePing();
+
+    static void handleHello();
+
+    static void handleStatus();
+
+    
+
+    public:
 
     static void begin();
 
-    static void sendHeartbeat(
-        const HeartbeatPacket& packet
-    );
+    static void processIncomingCommand();
+
+    static void sendStatus();
+
+    static void sendHeartbeat();
 };
 
 #endif

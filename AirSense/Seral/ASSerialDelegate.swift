@@ -5,7 +5,6 @@
 //  Created by ADITYA PANDYA on 12/07/26.
 //
 
-
 import Foundation
 
 protocol ASSerialDelegate: AnyObject
@@ -14,7 +13,11 @@ protocol ASSerialDelegate: AnyObject
 
     func serialManagerDidDisconnect()
 
-    func serialManager(didReceive data: Data)
+    func serialManager(
+        didReceive packet: String
+    )
 
-    func serialManager(didFail error: ASSerialError)
+    func serialManager(
+        didFail error: ASSerialError
+    )
 }

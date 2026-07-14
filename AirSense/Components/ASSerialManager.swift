@@ -19,8 +19,16 @@ final class ASSerialManager
     private(set) var devices: [ASSerialDevice] = []
 
     private let port = ASSerialPort()
+    
+    private var listening = false
+
+    private var listeningQueue = DispatchQueue(
+        label: "com.airsense.serial.listener"
+    )
 
     weak var delegate: ASSerialDelegate?
+
+    private(set) var isConnected = false
 
     private init() { }
 }
@@ -29,6 +37,44 @@ final class ASSerialManager
 
 extension ASSerialManager
 {
+    
+    func startListening()
+    {
+        guard !listening else
+        {
+            return
+        }
+
+        listening = true
+
+        listeningQueue.async
+        {
+            while self.listening
+            {
+                do
+                {
+                    let text = try self.receive()
+
+                    DispatchQueue.main.async
+                    {
+                        DispatchQueue.main.async {
+                            self.delegate?.serialManager(didReceive: text)
+                        }
+                    }
+                }
+                catch
+                {
+                    // Ignore timeout/read errors for now
+                }
+            }
+        }
+    }
+
+    func stopListening()
+    {
+        listening = false
+    }
+    
     func discoverDevices()
     {
         devices.removeAll()
@@ -82,3 +128,68 @@ extension ASSerialManager
         }
     }
 }
+
+// MARK: - Connection
+
+extension ASSerialManager
+{
+    func connect(to device: ASSerialDevice) throws
+    {
+        port.configure(devicePath: device.path)
+
+        try port.open()
+
+        isConnected = true
+
+        print("✅ Connected")
+    }
+
+    func disconnect()
+    {
+        stopListening()
+
+        port.close()
+
+        print("🔴 Disconnected")
+    }
+}
+
+// MARK: - Send
+
+extension ASSerialManager
+{
+    //this is overload func
+    func send(_ command: ASCommand) throws
+    {
+        try send(command.rawValue)
+    }
+    
+    func send(_ command: String) throws
+    {
+        print("📤 Sending :", command)
+
+        guard isConnected else
+        {
+            throw ASSerialError.failedToOpen
+        }
+
+        try port.write(Data("\(command)\n".utf8))
+    }
+}
+
+// MARK: - Receive
+
+extension ASSerialManager
+{
+    func receive() throws -> String
+    {
+        let data = try port.read(timeout: 2)
+
+        let text = String(data: data, encoding: .utf8) ?? ""
+
+       
+        return text
+    }
+}
+
+
