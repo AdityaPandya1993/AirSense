@@ -8,6 +8,13 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+//--------------------------------------------------
+// WiFi
+//--------------------------------------------------
+
+#define WIFI_SSID       "Jackspeed 4G"
+#define WIFI_PASSWORD   "JACKSPEED_"
+
 #include <Arduino.h>
 
 //==================================================

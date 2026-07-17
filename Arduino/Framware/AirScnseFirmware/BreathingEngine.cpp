@@ -2,9 +2,11 @@
 //  BreathingEngine.cpp
 //  AirSense Firmware
 //
+//  Version : 2.0
+//  Phase   : Professional Firmware
+//
 
 #include "BreathingEngine.h"
-#include "FrequencyAnalyzer.h"
 
 BreathingEngine&
 BreathingEngine::shared()
@@ -16,39 +18,40 @@ BreathingEngine::shared()
 
 BreathingEngine::BreathingEngine()
 {
+    _frequency = 0.0f;
     _breathingRate = 0;
-    _valid = false;
 }
 
 void BreathingEngine::update(
     float frequency
 )
 {
-    float bpm =
-        FrequencyAnalyzer::shared()
-            .frequencyToBPM(frequency);
+    _frequency = frequency;
 
-    if (bpm >= 6.0f &&
-        bpm <= 30.0f)
+    _breathingRate =
+        (int)(frequency * 60.0f);
+
+    //--------------------------------------------------
+    // Clamp
+    //--------------------------------------------------
+
+    if (_breathingRate < 6)
     {
-        _breathingRate =
-            (int)(bpm + 0.5f);
-
-        _valid = true;
+        _breathingRate = 6;
     }
-    else
+
+    if (_breathingRate > 40)
     {
-        _breathingRate = 0;
-        _valid = false;
+        _breathingRate = 40;
     }
 }
 
-int BreathingEngine::breathingRate() const
+float BreathingEngine::currentFrequency() const
+{
+    return _frequency;
+}
+
+int BreathingEngine::currentBreathingRate() const
 {
     return _breathingRate;
-}
-
-bool BreathingEngine::validSignal() const
-{
-    return _valid;
 }

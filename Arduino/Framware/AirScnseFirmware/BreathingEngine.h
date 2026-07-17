@@ -2,6 +2,9 @@
 //  BreathingEngine.h
 //  AirSense Firmware
 //
+//  Version : 2.0
+//  Phase   : Professional Firmware
+//
 
 #ifndef BREATHING_ENGINE_H
 #define BREATHING_ENGINE_H
@@ -12,19 +15,23 @@ public:
 
     static BreathingEngine& shared();
 
-    void update(float frequency);
+    void update(
+        float frequency
+    );
 
-    int breathingRate() const;
+    float currentFrequency() const;
 
-    bool validSignal() const;
+    int currentBreathingRate() const;
 
 private:
 
     BreathingEngine();
 
-    int _breathingRate;
+private:
 
-    bool _valid;
+    float _frequency;
+
+    int _breathingRate;
 };
 
 #endif

@@ -2,52 +2,56 @@
 //  HeartEngine.cpp
 //  AirSense Firmware
 //
+//  Version : 2.0
+//  Phase   : Professional Firmware
+//
 
 #include "HeartEngine.h"
-#include "FrequencyAnalyzer.h"
 
 HeartEngine&
 HeartEngine::shared()
 {
     static HeartEngine engine;
+
     return engine;
 }
 
 HeartEngine::HeartEngine()
 {
+    _frequency = 0.0f;
     _heartRate = 0;
-    _valid = false;
 }
 
 void HeartEngine::update(
     float frequency
 )
 {
-    float bpm =
-        FrequencyAnalyzer::shared()
-            .frequencyToBPM(frequency);
+    _frequency = frequency;
 
-    if (bpm >= 48.0f &&
-        bpm <= 150.0f)
+    _heartRate =
+        (int)(frequency * 60.0f);
+
+    //--------------------------------------------------
+    // Clamp
+    //--------------------------------------------------
+
+    if (_heartRate < 40)
     {
-        _heartRate =
-            (int)(bpm + 0.5f);
-
-        _valid = true;
+        _heartRate = 40;
     }
-    else
+
+    if (_heartRate > 180)
     {
-        _heartRate = 0;
-        _valid = false;
+        _heartRate = 180;
     }
 }
 
-int HeartEngine::heartRate() const
+float HeartEngine::currentFrequency() const
+{
+    return _frequency;
+}
+
+int HeartEngine::currentHeartRate() const
 {
     return _heartRate;
-}
-
-bool HeartEngine::validSignal() const
-{
-    return _valid;
 }

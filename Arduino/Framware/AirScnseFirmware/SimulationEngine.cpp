@@ -3,7 +3,9 @@
 //  AirSense Firmware
 //
 
+
 #include "SimulationEngine.h"
+
 #include "DeviceController.h"
 #include "HumanEntity.h"
 #include "HumanState.h"
@@ -11,23 +13,27 @@
 
 #include "CSIManager.h"
 #include "CSIBuffer.h"
-#include "SignalProcessor.h" //Very Impoernt 
 #include "SignalWindow.h"
+
+#include "DSPPipeline.h"
 
 void SimulationEngine::update()
 {
     static unsigned long lastUpdate = 0;
 
-    if (millis() - lastUpdate < 5000)
-    {
-        return;
-    }
+    Serial.println("SimulationEngine Enter");
+
+    // if (millis() - lastUpdate < 5000)
+    // {
+    //     return;
+    // }
 
     lastUpdate = millis();
+    Serial.println("5 Seconds Completed");
 
-    // -------------------------------------------------
+    //--------------------------------------------------
     // Generate Simulated CSI Frame
-    // -------------------------------------------------
+    //--------------------------------------------------
 
     CSIManager::shared().update();
 
@@ -35,22 +41,29 @@ void SimulationEngine::update()
         CSIManager::shared().currentFrame()
     );
 
-    //This is a Main File..
-    SignalProcessor::shared().process(
-    CSIManager::shared().currentFrame()
+    //--------------------------------------------------
+    // Run Complete DSP Pipeline
+    //--------------------------------------------------
+    Serial.println("Before DSP");
+    DSPPipeline::shared().process(
+        CSIManager::shared().currentFrame()
+    );
+    Serial.println("After DSP");
+
+    //--------------------------------------------------
+    // Signal Window
+    //--------------------------------------------------
+
+    SignalWindow::shared().addFrame(
+        CSIManager::shared().currentFrame()
     );
 
-    //Single Window wait for 128 Frame Then Ready = true then new frame slide old frame out
-    SignalWindow::shared().addFrame(
-    CSIManager::shared().currentFrame()
-);
-
-    // -------------------------------------------------
+    //--------------------------------------------------
     // Generate Simulated Human
-    // -------------------------------------------------
+    //--------------------------------------------------
 
     HumanEntity human;
-
+    Serial.println("Calling updateHuman()");
     HumanState state =
         HumanStateMachine::shared().currentState();
 
@@ -122,7 +135,58 @@ void SimulationEngine::update()
             break;
     }
 
-    DeviceController::shared().updateHuman(human);
+
+Serial.println();
+Serial.println("===== HUMAN BEFORE UPDATE =====");
+
+Serial.print("Detected : ");
+Serial.println(human.detected);
+
+Serial.print("Persons  : ");
+Serial.println(human.personCount);
+
+Serial.print("Motion   : ");
+Serial.println(human.motion);
+
+Serial.print("Heart    : ");
+Serial.println(human.heartRate);
+
+Serial.print("Breath   : ");
+Serial.println(human.breathing);
+
+Serial.print("X        : ");
+Serial.println(human.x);
+
+Serial.print("Y        : ");
+Serial.println(human.y);
+
+Serial.println("===============================");
+Serial.println();
+    //--------------------------------------------------
+    // Update Device
+    //--------------------------------------------------
+    Serial.println("Calling updateHuman()");
+    DeviceController::shared().updateHuman(
+        human
+    );
+
+    Serial.println(">>> updateHuman() called");
+
+Serial.print("Persons = ");
+Serial.println(human.personCount);
+
+Serial.print("Motion = ");
+Serial.println(human.motion);
+
+Serial.print("Heart = ");
+Serial.println(human.heartRate);
+
+Serial.print("Breath = ");
+Serial.println(human.breathing);
+
+    //--------------------------------------------------
+    // Move To Next Simulation State
+    //--------------------------------------------------
 
     HumanStateMachine::shared().nextState();
 }

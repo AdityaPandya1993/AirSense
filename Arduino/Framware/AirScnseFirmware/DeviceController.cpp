@@ -37,6 +37,7 @@ void DeviceController::update()
     _heap = ESP.getFreeHeap();
 }
 
+
 void DeviceController::updateHuman(
     const HumanEntity& human
 )

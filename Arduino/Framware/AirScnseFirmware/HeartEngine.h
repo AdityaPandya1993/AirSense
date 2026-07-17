@@ -2,6 +2,9 @@
 //  HeartEngine.h
 //  AirSense Firmware
 //
+//  Version : 2.0
+//  Phase   : Professional Firmware
+//
 
 #ifndef HEART_ENGINE_H
 #define HEART_ENGINE_H
@@ -12,19 +15,23 @@ public:
 
     static HeartEngine& shared();
 
-    void update(float frequency);
+    void update(
+        float frequency
+    );
 
-    int heartRate() const;
+    float currentFrequency() const;
 
-    bool validSignal() const;
+    int currentHeartRate() const;
 
 private:
 
     HeartEngine();
 
-    int _heartRate;
+private:
 
-    bool _valid;
+    float _frequency;
+
+    int _heartRate;
 };
 
 #endif

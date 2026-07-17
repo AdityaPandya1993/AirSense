@@ -42,6 +42,8 @@ namespace DSP
     constexpr float HeartAlpha = 0.30f;
 
     constexpr float MaxAmplitude = 3.0f;
+
+    constexpr float SampleRate = 20.0f;
 }
 
 #endif

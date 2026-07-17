@@ -18,6 +18,8 @@ public:
         const CSIFrame& frame
     );
 
+    void processBuffer();
+
 private:
 
     DSPPipeline();

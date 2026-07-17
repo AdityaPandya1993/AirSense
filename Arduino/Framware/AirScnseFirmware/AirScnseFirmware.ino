@@ -13,6 +13,10 @@
 #include "DeviceController.h"
 #include "SimulationEngine.h"
 
+#include "WiFiManager.h"
+#include "CSIReceiver.h"
+#include "CSIDriver.h"
+
 unsigned long lastHeartbeat = 0;
 
 void setup()
@@ -20,6 +24,14 @@ void setup()
     Logger::begin();
 
     Logger::info("Boot Complete");
+
+    WiFiManager::shared().begin();
+
+    CSIDriver::shared().begin();
+
+    CSIReceiver::shared().begin();
+
+    Logger::info("WiFi Initialized");
 
     DeviceInfo device;
 
@@ -33,7 +45,17 @@ void setup()
     device.freeHeap = ESP.getFreeHeap();
     device.uptime = 0;
 
+    Serial.print("CSI Ready = ");
+
+    Serial.println(
+    CSIReceiver::shared().isEnabled()
+        ? "YES"
+        : "NO"
+);
+
     Logger::info("Device Model Created");
+
+
 
     SerialManager::begin();
 
@@ -44,6 +66,14 @@ void setup()
     DeviceController::shared().setHeartRate(81);
 
     DeviceController::shared().setBreathing(18);
+
+    Serial.print("WiFi Ready = ");
+
+Serial.println(
+    WiFiManager::shared().isReady()
+        ? "YES"
+        : "NO"
+);
 }
 
 void loop()
