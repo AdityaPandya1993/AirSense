@@ -12,10 +12,11 @@
 #include "SerialManager.h"
 #include "DeviceController.h"
 #include "SimulationEngine.h"
-
 #include "WiFiManager.h"
 #include "CSIReceiver.h"
 #include "CSIDriver.h"
+#include "RawCSIRecorder.h"
+#include "PacketAnalyzer.h"
 
 unsigned long lastHeartbeat = 0;
 
@@ -27,9 +28,13 @@ void setup()
 
     WiFiManager::shared().begin();
 
+    RawCSIRecorder::shared().begin();
+
     CSIDriver::shared().begin();
 
     CSIReceiver::shared().begin();
+
+    PacketAnalyzer::shared().begin();
 
     Logger::info("WiFi Initialized");
 
@@ -81,6 +86,10 @@ void loop()
     SimulationEngine::update();
     
     SerialManager::processIncomingCommand();
+
+    PacketAnalyzer::shared().analyze(
+    RawCSIRecorder::shared().latestFrame()
+);
 
     if (millis() - lastHeartbeat >= 1000)
     {

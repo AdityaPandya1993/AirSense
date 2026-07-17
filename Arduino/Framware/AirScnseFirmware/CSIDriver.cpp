@@ -4,8 +4,11 @@
 //
 
 #include "CSIDriver.h"
-
+#include "CSIReceiver.h"
+#include "CSIFrame.h"
 #include <Arduino.h>
+#include "RawCSIFrame.h"
+#include "RawCSIRecorder.h"
 #include <WiFi.h>
 
 extern "C"
@@ -141,17 +144,44 @@ void CSIDriver::wifiCsiCallback(
         return;
     }
 
-    Serial.println();
-    Serial.println("=========== CSI Packet ===========");
+    //--------------------------------------------------
+    // Create Raw Frame
+    //--------------------------------------------------
 
-    Serial.print("RSSI : ");
-    Serial.println(info->rx_ctrl.rssi);
+    RawCSIFrame rawFrame;
 
-    Serial.print("Channel : ");
-    Serial.println(info->rx_ctrl.channel);
+    rawFrame.timestamp = millis();
 
-    Serial.print("Length : ");
-    Serial.println(info->len);
+    rawFrame.rssi = info->rx_ctrl.rssi;
 
-    Serial.println("==================================");
+    rawFrame.channel = info->rx_ctrl.channel;
+
+    rawFrame.length = info->len;
+
+    rawFrame.firstWordInvalid =
+        info->first_word_invalid;
+
+    //--------------------------------------------------
+    // Copy Raw Bytes
+    //--------------------------------------------------
+
+    uint16_t length = info->len;
+
+    if (length > RAW_CSI_MAX_LENGTH)
+    {
+        length = RAW_CSI_MAX_LENGTH;
+    }
+
+    memcpy(
+        rawFrame.data,
+        info->buf,
+        length
+    );
+
+    //--------------------------------------------------
+    // Store Packet
+    //--------------------------------------------------
+
+    RawCSIRecorder::shared().record(rawFrame);
+
 }
