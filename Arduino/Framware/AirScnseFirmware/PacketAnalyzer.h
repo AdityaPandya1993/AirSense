@@ -12,6 +12,8 @@
 
 #include "RawCSIFrame.h"
 #include "CSISample.h"
+#include "CenteredSample.h"
+#include "DCRemoval.h"
 
 class PacketAnalyzer
 {
@@ -48,6 +50,13 @@ private:
         uint16_t startOffset,
         uint16_t pairCount
     ) const;
+
+    void printCenteredSamples(
+    const CSISample* original,
+    const CenteredSample* centered,
+    uint16_t count,
+    float mean
+  ) const;
 
     void printCSISamples(
         const CSISample* samples,

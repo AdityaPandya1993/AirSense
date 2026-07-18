@@ -9,6 +9,7 @@
 
 #include "IQDecoder.h"
 #include "CSIConverter.h"
+#include "DCRemoval.h"
 
 PacketAnalyzer&
 PacketAnalyzer::shared()
@@ -36,13 +37,13 @@ void PacketAnalyzer::analyze(
 )
 {
     //--------------------------------------------------
-    // Decode IQ
+    // Decode Raw Packet -> IQ
     //--------------------------------------------------
 
     IQDecoder::shared().decode(frame);
 
     //--------------------------------------------------
-    // Convert IQ -> CSI
+    // IQ -> CSI Samples
     //--------------------------------------------------
 
     CSIConverter::shared().convert(
@@ -51,7 +52,16 @@ void PacketAnalyzer::analyze(
     );
 
     //--------------------------------------------------
-    // Print Packet
+    // CSI -> Centered Signal
+    //--------------------------------------------------
+
+    DCRemoval::shared().remove(
+        CSIConverter::shared().samples(),
+        CSIConverter::shared().sampleCount()
+    );
+
+    //--------------------------------------------------
+    // Packet Summary
     //--------------------------------------------------
 
     printHeader();
@@ -59,7 +69,7 @@ void PacketAnalyzer::analyze(
     printSummary(frame);
 
     //--------------------------------------------------
-    // Raw Signed Values
+    // Raw Signed Bytes
     //--------------------------------------------------
 
     printSignedSamples(
@@ -69,7 +79,7 @@ void PacketAnalyzer::analyze(
     );
 
     //--------------------------------------------------
-    // IQ Values
+    // IQ Samples
     //--------------------------------------------------
 
     printIQPairs(
@@ -79,14 +89,28 @@ void PacketAnalyzer::analyze(
     );
 
     //--------------------------------------------------
-    // CSI Values
+    // CSI Samples
     //--------------------------------------------------
 
     printCSISamples(
         CSIConverter::shared().samples(),
         CSIConverter::shared().sampleCount()
     );
+
+    //--------------------------------------------------
+    // Centered Samples
+    //--------------------------------------------------
+
+    printCenteredSamples(
+        CSIConverter::shared().samples(),
+        DCRemoval::shared().samples(),
+        DCRemoval::shared().sampleCount(),
+        DCRemoval::shared().meanAmplitude()
+    );
 }
+//--------------------------------------------------
+// MARK: - Header
+//--------------------------------------------------
 
 void PacketAnalyzer::printHeader() const
 {
@@ -96,6 +120,10 @@ void PacketAnalyzer::printHeader() const
     Serial.println("        AirSense Packet Analyzer");
     Serial.println("========================================");
 }
+
+//--------------------------------------------------
+// MARK: - Summary
+//--------------------------------------------------
 
 void PacketAnalyzer::printSummary(
     const RawCSIFrame& frame
@@ -123,6 +151,11 @@ void PacketAnalyzer::printSummary(
 
     Serial.println("----------------------------------------");
 }
+
+//--------------------------------------------------
+// MARK: - Signed Samples
+//--------------------------------------------------
+
 void PacketAnalyzer::printSignedSamples(
     const RawCSIFrame& frame,
     uint16_t startOffset,
@@ -149,8 +182,12 @@ void PacketAnalyzer::printSignedSamples(
     }
 
     Serial.println();
+
     Serial.println("----------------------------------------");
 }
+//--------------------------------------------------
+// MARK: - IQ Pairs
+//--------------------------------------------------
 
 void PacketAnalyzer::printIQPairs(
     const RawCSIFrame& frame,
@@ -192,6 +229,10 @@ void PacketAnalyzer::printIQPairs(
     Serial.println("----------------------------------------");
 }
 
+//--------------------------------------------------
+// MARK: - CSI Samples
+//--------------------------------------------------
+
 void PacketAnalyzer::printCSISamples(
     const CSISample* samples,
     uint16_t count
@@ -219,6 +260,69 @@ void PacketAnalyzer::printCSISamples(
 
         Serial.println(samples[i].phase, 4);
     }
+
+    Serial.println();
+    Serial.println("----------------------------------------");
+}
+//--------------------------------------------------
+// MARK: - Centered Samples
+//--------------------------------------------------
+
+void PacketAnalyzer::printCenteredSamples(
+    const CSISample* original,
+    const CenteredSample* centered,
+    uint16_t count,
+    float mean
+) const
+{
+    Serial.println("DC REMOVAL");
+    Serial.println();
+
+    Serial.print("Mean Amplitude : ");
+    Serial.println(mean, 4);
+
+    Serial.println();
+    Serial.println("Idx\tOriginal\tCentered");
+
+    uint16_t maxSamples = count;
+
+    if (maxSamples > 16)
+    {
+        maxSamples = 16;
+    }
+
+    float centeredMean = 0.0f;
+
+//--------------------------------------------------
+// Calculate Mean Using ALL Samples
+//--------------------------------------------------
+
+for (uint16_t i = 0; i < count; i++)
+{
+    centeredMean += centered[i].amplitude;
+}
+
+centeredMean /= count;
+
+//--------------------------------------------------
+// Print Only First Samples
+//--------------------------------------------------
+
+for (uint16_t i = 0; i < maxSamples; i++)
+{
+    Serial.print(centered[i].index);
+    Serial.print("\t");
+
+    Serial.print(original[i].amplitude, 4);
+    Serial.print("\t\t");
+
+    Serial.println(centered[i].amplitude, 4);
+}
+
+    Serial.println();
+
+    Serial.print("Centered Mean : ");
+    Serial.println(centeredMean, 6);
 
     Serial.println("========================================");
 }
