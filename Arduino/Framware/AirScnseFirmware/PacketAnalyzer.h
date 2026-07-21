@@ -14,6 +14,7 @@
 #include "CSISample.h"
 #include "CenteredSample.h"
 #include "DCRemoval.h"
+#include "FilteredSample.h"
 
 class PacketAnalyzer
 {
@@ -31,9 +32,13 @@ private:
 
     PacketAnalyzer();
 
-private:
-
     void printHeader() const;
+
+    void printFilteredSamples(
+    const CenteredSample* centered,
+    const FilteredSample* filtered,
+    uint16_t count
+) const;
 
     void printSummary(
         const RawCSIFrame& frame
