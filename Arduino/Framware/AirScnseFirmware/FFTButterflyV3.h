@@ -1,18 +1,18 @@
 //
-//  HumanStateMachine.h
+//  FFTButterflyV3.h
 //  AirSense Firmware
+//
+//  AirSense DSP Refactor V3
 //
 //  Created by Aditya Pandya
 //
 
-#ifndef HUMAN_STATE_MACHINE_H
-#define HUMAN_STATE_MACHINE_H
+#ifndef FFT_BUTTERFLY_V3_H
+#define FFT_BUTTERFLY_V3_H
 
 #include <Arduino.h>
 
-#include "HumanState.h"
-
-class HumanStateMachine
+class FFTButterflyV3
 {
 public:
 
@@ -20,48 +20,62 @@ public:
     // Singleton
     //--------------------------------------------------
 
-    static HumanStateMachine& shared();
+    static FFTButterflyV3& shared();
 
     //--------------------------------------------------
-    // Current State
+    // Initialize
     //--------------------------------------------------
 
-    HumanState currentState() const;
+    bool begin();
 
     //--------------------------------------------------
-    // Simulation Mode
+    // Execute FFT
     //--------------------------------------------------
 
-    void nextState();
-
-    //--------------------------------------------------
-    // Real CSI Mode
-    //--------------------------------------------------
-
-    void update(
-        bool personDetected,
-        float filteredMotionEnergy
+    void process(
+        float* real,
+        float* imag,
+        uint16_t count
     );
 
     //--------------------------------------------------
-    // Reset State Machine
+    // Reset
     //--------------------------------------------------
 
     void reset();
 
 private:
 
-    //--------------------------------------------------
-    // Constructor
-    //--------------------------------------------------
-
-    HumanStateMachine();
+    FFTButterflyV3();
 
     //--------------------------------------------------
-    // Current State
+    // Internal Stages
     //--------------------------------------------------
 
-    HumanState _state;
+    void bitReverse(
+        float* real,
+        float* imag,
+        uint16_t count
+    );
+
+    void butterfly(
+        float* real,
+        float* imag,
+        uint16_t count
+    );
+
+    //--------------------------------------------------
+    // Utilities
+    //--------------------------------------------------
+
+    uint16_t reverseBits(
+        uint16_t value,
+        uint8_t bits
+    ) const;
+
+private:
+
+    bool _ready;
 };
 
 #endif

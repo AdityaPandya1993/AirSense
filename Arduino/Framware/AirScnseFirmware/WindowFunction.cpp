@@ -2,11 +2,11 @@
 //  WindowFunction.cpp
 //  AirSense Firmware
 //
+//  AirSense DSP Refactor V2
+//
 
 #include "WindowFunction.h"
-#include "DSPConstants.h"
-
-#include <math.h>
+#include "SignalBuffer.h"
 
 WindowFunction&
 WindowFunction::shared()
@@ -18,34 +18,61 @@ WindowFunction::shared()
 
 WindowFunction::WindowFunction()
 {
-
+    for (uint16_t i = 0; i < MAX_SAMPLES; i++)
+    {
+        _window[i] = 0.0f;
+    }
 }
 
-void WindowFunction::apply(
-    float* samples,
-    int count
-)
+void WindowFunction::process()
 {
-    if (samples == nullptr || count <= 1)
+    float temp[MAX_SAMPLES];
+
+    const float* input =
+        SignalBuffer::shared().samples();
+
+    uint16_t count =
+        SignalBuffer::shared().sampleCount();
+
+    if (count == 0)
     {
         return;
     }
 
     //--------------------------------------------------
-    // Hann Window
+    // Build Hamming Window
     //--------------------------------------------------
 
-    for (int i = 0; i < count; i++)
+    for (uint16_t i = 0; i < count; i++)
     {
-        float multiplier =
-            0.5f -
-            0.5f *
+        _window[i] =
+            0.54f -
+            0.46f *
             cosf(
-                (DSP::kTwoPi * float(i))
-                /
-                float(count - 1)
+                2.0f *
+                PI *
+                i /
+                (count - 1)
             );
-
-        samples[i] *= multiplier;
     }
+
+    //--------------------------------------------------
+    // Apply Window
+    //--------------------------------------------------
+
+    for (uint16_t i = 0; i < count; i++)
+    {
+        temp[i] =
+            input[i] *
+            _window[i];
+    }
+
+    //--------------------------------------------------
+    // Update Shared Buffer
+    //--------------------------------------------------
+
+    SignalBuffer::shared().update(
+        temp,
+        count
+    );
 }

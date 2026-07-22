@@ -1,18 +1,16 @@
 //
-//  HumanStateMachine.h
+//  MotionEnergyFilter.h
 //  AirSense Firmware
 //
 //  Created by Aditya Pandya
 //
 
-#ifndef HUMAN_STATE_MACHINE_H
-#define HUMAN_STATE_MACHINE_H
+#ifndef MOTION_ENERGY_FILTER_H
+#define MOTION_ENERGY_FILTER_H
 
 #include <Arduino.h>
 
-#include "HumanState.h"
-
-class HumanStateMachine
+class MotionEnergyFilter
 {
 public:
 
@@ -20,48 +18,46 @@ public:
     // Singleton
     //--------------------------------------------------
 
-    static HumanStateMachine& shared();
+    static MotionEnergyFilter& shared();
 
     //--------------------------------------------------
-    // Current State
+    // Filter Motion Energy
     //--------------------------------------------------
 
-    HumanState currentState() const;
-
-    //--------------------------------------------------
-    // Simulation Mode
-    //--------------------------------------------------
-
-    void nextState();
-
-    //--------------------------------------------------
-    // Real CSI Mode
-    //--------------------------------------------------
-
-    void update(
-        bool personDetected,
-        float filteredMotionEnergy
+    void filter(
+        float energy
     );
 
     //--------------------------------------------------
-    // Reset State Machine
+    // Filtered Energy
     //--------------------------------------------------
 
-    void reset();
+    float energy() const;
 
 private:
 
-    //--------------------------------------------------
-    // Constructor
-    //--------------------------------------------------
-
-    HumanStateMachine();
+    MotionEnergyFilter();
 
     //--------------------------------------------------
-    // Current State
+    // Exponential Moving Average
+    //
+    // 0.0 = Heavy Smoothing
+    // 1.0 = No Filtering
     //--------------------------------------------------
 
-    HumanState _state;
+    static constexpr float ALPHA = 0.20f;
+
+    //--------------------------------------------------
+    // Current Filtered Energy
+    //--------------------------------------------------
+
+    float _energy;
+
+    //--------------------------------------------------
+    // First Packet Flag
+    //--------------------------------------------------
+
+    bool _firstPacket;
 };
 
 #endif

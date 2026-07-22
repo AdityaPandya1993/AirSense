@@ -1,58 +1,62 @@
 //
-//  HumanState.h
+//  HeartRateEstimatorV3.h
 //  AirSense Firmware
 //
-//  Created by Aditya Pandya
-//
 
-#ifndef HUMAN_STATE_H
-#define HUMAN_STATE_H
+#ifndef HEART_RATE_ESTIMATOR_V3_H
+#define HEART_RATE_ESTIMATOR_V3_H
 
-enum class HumanState
+#include <Arduino.h>
+
+class HeartRateEstimatorV3
 {
-    //--------------------------------------------------
-    // System States
-    //--------------------------------------------------
-
-    Booting,
-
-    Idle,
+public:
 
     //--------------------------------------------------
-    // Detection
+    // Singleton
     //--------------------------------------------------
 
-    PersonDetected,
+    static HeartRateEstimatorV3& shared();
 
     //--------------------------------------------------
-    // Stable Human
+    // Initialize
     //--------------------------------------------------
 
-    Still,
+    bool begin();
 
     //--------------------------------------------------
-    // Motion
+    // Process
     //--------------------------------------------------
 
-    Monitoring,
-
-    Walking,
-
-    Running,
+    void process(
+        float dominantFrequency
+    );
 
     //--------------------------------------------------
-    // Gesture
+    // Results
     //--------------------------------------------------
 
-    GestureDetected,
+    float bpm() const;
+
+    bool valid() const;
 
     //--------------------------------------------------
-    // Emergency
+    // Reset
     //--------------------------------------------------
 
-    FallDetected,
+    void reset();
 
-    Alert
+private:
+
+    HeartRateEstimatorV3();
+
+private:
+
+    bool _ready;
+
+    bool _valid;
+
+    float _bpm;
 };
 
 #endif

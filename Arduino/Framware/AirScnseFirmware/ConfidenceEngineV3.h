@@ -1,58 +1,64 @@
 //
-//  HumanState.h
+//  ConfidenceEngineV3.h
 //  AirSense Firmware
 //
-//  Created by Aditya Pandya
-//
 
-#ifndef HUMAN_STATE_H
-#define HUMAN_STATE_H
+#ifndef CONFIDENCE_ENGINE_V3_H
+#define CONFIDENCE_ENGINE_V3_H
 
-enum class HumanState
+#include <Arduino.h>
+
+class ConfidenceEngineV3
 {
-    //--------------------------------------------------
-    // System States
-    //--------------------------------------------------
-
-    Booting,
-
-    Idle,
+public:
 
     //--------------------------------------------------
-    // Detection
+    // Singleton
     //--------------------------------------------------
 
-    PersonDetected,
+    static ConfidenceEngineV3& shared();
 
     //--------------------------------------------------
-    // Stable Human
+    // Initialize
     //--------------------------------------------------
 
-    Still,
+    bool begin();
 
     //--------------------------------------------------
-    // Motion
+    // Process
     //--------------------------------------------------
 
-    Monitoring,
-
-    Walking,
-
-    Running,
-
-    //--------------------------------------------------
-    // Gesture
-    //--------------------------------------------------
-
-    GestureDetected,
+    void process(
+        bool heartValid,
+        bool breathingValid,
+        float peakMagnitude
+    );
 
     //--------------------------------------------------
-    // Emergency
+    // Results
     //--------------------------------------------------
 
-    FallDetected,
+    float confidence() const;
 
-    Alert
+    bool detected() const;
+
+    //--------------------------------------------------
+    // Reset
+    //--------------------------------------------------
+
+    void reset();
+
+private:
+
+    ConfidenceEngineV3();
+
+private:
+
+    bool _ready;
+
+    bool _detected;
+
+    float _confidence;
 };
 
 #endif

@@ -1,18 +1,18 @@
 //
-//  HumanStateMachine.h
+//  SharedDSPWorkspace.h
 //  AirSense Firmware
+//
+//  AirSense DSP Refactor V3
 //
 //  Created by Aditya Pandya
 //
 
-#ifndef HUMAN_STATE_MACHINE_H
-#define HUMAN_STATE_MACHINE_H
+#ifndef SHARED_DSP_WORKSPACE_H
+#define SHARED_DSP_WORKSPACE_H
 
 #include <Arduino.h>
 
-#include "HumanState.h"
-
-class HumanStateMachine
+class SharedDSPWorkspace
 {
 public:
 
@@ -20,48 +20,67 @@ public:
     // Singleton
     //--------------------------------------------------
 
-    static HumanStateMachine& shared();
+    static SharedDSPWorkspace& shared();
 
     //--------------------------------------------------
-    // Current State
+    // Initialization
     //--------------------------------------------------
 
-    HumanState currentState() const;
-
-    //--------------------------------------------------
-    // Simulation Mode
-    //--------------------------------------------------
-
-    void nextState();
-
-    //--------------------------------------------------
-    // Real CSI Mode
-    //--------------------------------------------------
-
-    void update(
-        bool personDetected,
-        float filteredMotionEnergy
-    );
-
-    //--------------------------------------------------
-    // Reset State Machine
-    //--------------------------------------------------
+    bool begin();
 
     void reset();
 
+    void release();
+
+    //--------------------------------------------------
+    // Signal Buffer
+    //--------------------------------------------------
+
+    float* signal();
+
+    //--------------------------------------------------
+    // FFT Real
+    //--------------------------------------------------
+
+    float* fftReal();
+
+    //--------------------------------------------------
+    // FFT Imaginary
+    //--------------------------------------------------
+
+    float* fftImag();
+
+    //--------------------------------------------------
+    // Magnitude
+    //--------------------------------------------------
+
+    float* magnitude();
+
+    //--------------------------------------------------
+    // Information
+    //--------------------------------------------------
+
+    uint16_t capacity() const;
+
+    bool ready() const;
+
 private:
 
-    //--------------------------------------------------
-    // Constructor
-    //--------------------------------------------------
+    SharedDSPWorkspace();
 
-    HumanStateMachine();
+private:
 
-    //--------------------------------------------------
-    // Current State
-    //--------------------------------------------------
+    static constexpr uint16_t BUFFER_SIZE = 256;
 
-    HumanState _state;
+    bool _ready;
+
+    float* _signal;
+
+    float* _fftReal;
+
+    float* _fftImag;
+
+    float* _magnitude;
 };
 
 #endif

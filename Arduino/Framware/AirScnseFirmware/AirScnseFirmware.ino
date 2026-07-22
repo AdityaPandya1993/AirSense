@@ -17,6 +17,19 @@
 #include "CSIDriver.h"
 #include "RawCSIRecorder.h"
 #include "PacketAnalyzer.h"
+#include "SignalBufferV3.h"
+#include "FFTWorkspace.h"
+
+#include "FFTButterflyV3.h"
+#include "FFTMagnitudeV3.h"
+
+#include "PeakDetectorV3.h"
+#include "FrequencyAnalyzerV3.h"
+
+#include "HeartRateEstimatorV3.h"
+#include "BreathingEstimatorV3.h"
+
+#include "ConfidenceEngineV3.h"
 
 unsigned long lastHeartbeat = 0;
 

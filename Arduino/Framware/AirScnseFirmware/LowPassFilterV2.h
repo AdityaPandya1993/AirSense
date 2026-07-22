@@ -1,58 +1,52 @@
 //
-//  HumanState.h
+//  LowPassFilterV2.h
 //  AirSense Firmware
 //
-//  Created by Aditya Pandya
+//  AirSense DSP Refactor V2.1
 //
 
-#ifndef HUMAN_STATE_H
-#define HUMAN_STATE_H
+#ifndef LOW_PASS_FILTER_V2_H
+#define LOW_PASS_FILTER_V2_H
 
-enum class HumanState
+#include <Arduino.h>
+
+class LowPassFilterV2
 {
-    //--------------------------------------------------
-    // System States
-    //--------------------------------------------------
-
-    Booting,
-
-    Idle,
+public:
 
     //--------------------------------------------------
-    // Detection
+    // Singleton
     //--------------------------------------------------
 
-    PersonDetected,
+    static LowPassFilterV2& shared();
 
     //--------------------------------------------------
-    // Stable Human
+    // Process Working Buffer
     //--------------------------------------------------
 
-    Still,
+    void process();
 
     //--------------------------------------------------
-    // Motion
+    // Reset Filter
     //--------------------------------------------------
 
-    Monitoring,
+    void reset();
 
-    Walking,
+private:
 
-    Running,
-
-    //--------------------------------------------------
-    // Gesture
-    //--------------------------------------------------
-
-    GestureDetected,
+    LowPassFilterV2();
 
     //--------------------------------------------------
-    // Emergency
+    // Low Pass Alpha
     //--------------------------------------------------
 
-    FallDetected,
+    static constexpr float ALPHA = 0.25f;
 
-    Alert
+    //--------------------------------------------------
+    // Previous Output
+    //--------------------------------------------------
+
+    float _previousOutput;
 };
 
 #endif

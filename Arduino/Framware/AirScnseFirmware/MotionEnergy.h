@@ -1,18 +1,18 @@
 //
-//  HumanStateMachine.h
+//  MotionEnergy.h
 //  AirSense Firmware
 //
 //  Created by Aditya Pandya
 //
 
-#ifndef HUMAN_STATE_MACHINE_H
-#define HUMAN_STATE_MACHINE_H
+#ifndef MOTION_ENERGY_H
+#define MOTION_ENERGY_H
 
 #include <Arduino.h>
 
-#include "HumanState.h"
+#include "FilteredSample.h"
 
-class HumanStateMachine
+class MotionEnergy
 {
 public:
 
@@ -20,48 +20,56 @@ public:
     // Singleton
     //--------------------------------------------------
 
-    static HumanStateMachine& shared();
+    static MotionEnergy& shared();
 
     //--------------------------------------------------
-    // Current State
+    // Calculate Motion Energy
     //--------------------------------------------------
 
-    HumanState currentState() const;
-
-    //--------------------------------------------------
-    // Simulation Mode
-    //--------------------------------------------------
-
-    void nextState();
-
-    //--------------------------------------------------
-    // Real CSI Mode
-    //--------------------------------------------------
-
-    void update(
-        bool personDetected,
-        float filteredMotionEnergy
+    void calculate(
+        const FilteredSample* samples,
+        uint16_t count
     );
 
     //--------------------------------------------------
-    // Reset State Machine
+    // Result
     //--------------------------------------------------
 
-    void reset();
+    float energy() const;
+
+    //--------------------------------------------------
+    // Sample Count
+    //--------------------------------------------------
+
+    uint16_t sampleCount() const;
 
 private:
 
-    //--------------------------------------------------
-    // Constructor
-    //--------------------------------------------------
-
-    HumanStateMachine();
+    MotionEnergy();
 
     //--------------------------------------------------
-    // Current State
+    // Maximum CSI Samples
     //--------------------------------------------------
 
-    HumanState _state;
+    static constexpr uint16_t MAX_SAMPLES = 256;
+
+    //--------------------------------------------------
+    // Previous Packet Amplitude
+    //--------------------------------------------------
+
+    float _previous[MAX_SAMPLES];
+
+    //--------------------------------------------------
+    // Current Packet Count
+    //--------------------------------------------------
+
+    uint16_t _count;
+
+    //--------------------------------------------------
+    // Motion Energy
+    //--------------------------------------------------
+
+    float _energy;
 };
 
 #endif

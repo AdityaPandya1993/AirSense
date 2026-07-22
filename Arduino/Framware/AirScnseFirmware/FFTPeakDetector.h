@@ -1,58 +1,73 @@
 //
-//  HumanState.h
+//  FFTPeakDetector.h
 //  AirSense Firmware
 //
-//  Created by Aditya Pandya
-//
 
-#ifndef HUMAN_STATE_H
-#define HUMAN_STATE_H
+#ifndef FFT_PEAK_DETECTOR_H
+#define FFT_PEAK_DETECTOR_H
 
-enum class HumanState
+#include <Arduino.h>
+
+class FFTPeakDetector
 {
-    //--------------------------------------------------
-    // System States
-    //--------------------------------------------------
-
-    Booting,
-
-    Idle,
+public:
 
     //--------------------------------------------------
-    // Detection
+    // Singleton
     //--------------------------------------------------
 
-    PersonDetected,
+    static FFTPeakDetector& shared();
 
     //--------------------------------------------------
-    // Stable Human
+    // Analyze Spectrum
     //--------------------------------------------------
 
-    Still,
+    void detect(
+        const float* spectrum,
+        uint16_t fftSize
+    );
 
     //--------------------------------------------------
-    // Motion
+    // Peak
     //--------------------------------------------------
 
-    Monitoring,
+    uint16_t peakIndex() const;
 
-    Walking,
-
-    Running,
+    float peakMagnitude() const;
 
     //--------------------------------------------------
-    // Gesture
+    // Second Peak
     //--------------------------------------------------
 
-    GestureDetected,
+    uint16_t secondPeakIndex() const;
+
+    float secondPeakMagnitude() const;
 
     //--------------------------------------------------
-    // Emergency
+    // Noise Floor
     //--------------------------------------------------
 
-    FallDetected,
+    float noiseFloor() const;
 
-    Alert
+    //--------------------------------------------------
+    // Reset
+    //--------------------------------------------------
+
+    void reset();
+
+private:
+
+    FFTPeakDetector();
+
+private:
+
+    uint16_t _peakIndex;
+    float _peakMagnitude;
+
+    uint16_t _secondPeakIndex;
+    float _secondPeakMagnitude;
+
+    float _noiseFloor;
 };
 
 #endif

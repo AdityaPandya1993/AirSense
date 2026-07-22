@@ -1,0 +1,136 @@
+//
+//  FFTWorkspace.cpp
+//  AirSense Firmware
+//
+//  AirSense DSP Refactor V3
+//
+
+#include "FFTWorkspace.h"
+#include "SharedDSPWorkspace.h"
+
+////////////////////////////////////////////////////////
+// Singleton
+////////////////////////////////////////////////////////
+
+FFTWorkspace&
+FFTWorkspace::shared()
+{
+    static FFTWorkspace instance;
+
+    return instance;
+}
+
+////////////////////////////////////////////////////////
+// Constructor
+////////////////////////////////////////////////////////
+
+FFTWorkspace::FFTWorkspace()
+{
+    _ready = false;
+}
+
+////////////////////////////////////////////////////////
+// Begin
+////////////////////////////////////////////////////////
+
+bool FFTWorkspace::begin()
+{
+    if (_ready)
+    {
+        return true;
+    }
+
+    _ready =
+        SharedDSPWorkspace
+            ::shared()
+            .begin();
+
+    return _ready;
+}
+
+////////////////////////////////////////////////////////
+// Reset
+////////////////////////////////////////////////////////
+
+void FFTWorkspace::reset()
+{
+    if (!_ready)
+    {
+        return;
+    }
+
+    float* r = real();
+    float* i = imag();
+    float* m = magnitude();
+
+    uint16_t count = capacity();
+
+    for(uint16_t n = 0; n < count; n++)
+    {
+        r[n] = 0.0f;
+        i[n] = 0.0f;
+        m[n] = 0.0f;
+    }
+}
+
+////////////////////////////////////////////////////////
+// Real
+////////////////////////////////////////////////////////
+
+float*
+FFTWorkspace::real()
+{
+    return
+        SharedDSPWorkspace
+            ::shared()
+            .fftReal();
+}
+
+////////////////////////////////////////////////////////
+// Imaginary
+////////////////////////////////////////////////////////
+
+float*
+FFTWorkspace::imag()
+{
+    return
+        SharedDSPWorkspace
+            ::shared()
+            .fftImag();
+}
+
+////////////////////////////////////////////////////////
+// Magnitude
+////////////////////////////////////////////////////////
+
+float*
+FFTWorkspace::magnitude()
+{
+    return
+        SharedDSPWorkspace
+            ::shared()
+            .magnitude();
+}
+
+////////////////////////////////////////////////////////
+// Capacity
+////////////////////////////////////////////////////////
+
+uint16_t
+FFTWorkspace::capacity() const
+{
+    return
+        SharedDSPWorkspace
+            ::shared()
+            .capacity();
+}
+
+////////////////////////////////////////////////////////
+// Ready
+////////////////////////////////////////////////////////
+
+bool
+FFTWorkspace::ready() const
+{
+    return _ready;
+}

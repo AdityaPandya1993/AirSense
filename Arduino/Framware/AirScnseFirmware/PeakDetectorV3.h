@@ -1,58 +1,63 @@
 //
-//  HumanState.h
+//  PeakDetectorV3.h
 //  AirSense Firmware
 //
-//  Created by Aditya Pandya
-//
 
-#ifndef HUMAN_STATE_H
-#define HUMAN_STATE_H
+#ifndef PEAK_DETECTOR_V3_H
+#define PEAK_DETECTOR_V3_H
 
-enum class HumanState
+#include <Arduino.h>
+
+class PeakDetectorV3
 {
-    //--------------------------------------------------
-    // System States
-    //--------------------------------------------------
-
-    Booting,
-
-    Idle,
+public:
 
     //--------------------------------------------------
-    // Detection
+    // Singleton
     //--------------------------------------------------
 
-    PersonDetected,
+    static PeakDetectorV3& shared();
 
     //--------------------------------------------------
-    // Stable Human
+    // Initialize
     //--------------------------------------------------
 
-    Still,
+    bool begin();
 
     //--------------------------------------------------
-    // Motion
+    // Process
     //--------------------------------------------------
 
-    Monitoring,
-
-    Walking,
-
-    Running,
-
-    //--------------------------------------------------
-    // Gesture
-    //--------------------------------------------------
-
-    GestureDetected,
+    void process(
+        const float* magnitude,
+        uint16_t count
+    );
 
     //--------------------------------------------------
-    // Emergency
+    // Results
     //--------------------------------------------------
 
-    FallDetected,
+    uint16_t peakIndex() const;
 
-    Alert
+    float peakMagnitude() const;
+
+    //--------------------------------------------------
+    // Reset
+    //--------------------------------------------------
+
+    void reset();
+
+private:
+
+    PeakDetectorV3();
+
+private:
+
+    bool _ready;
+
+    uint16_t _peakIndex;
+
+    float _peakMagnitude;
 };
 
 #endif

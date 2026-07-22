@@ -1,58 +1,60 @@
 //
-//  HumanState.h
+//  FFTWorkspace.h
 //  AirSense Firmware
 //
-//  Created by Aditya Pandya
+//  AirSense DSP Refactor V3
 //
 
-#ifndef HUMAN_STATE_H
-#define HUMAN_STATE_H
+#ifndef FFT_WORKSPACE_H
+#define FFT_WORKSPACE_H
 
-enum class HumanState
+#include <Arduino.h>
+
+class FFTWorkspace
 {
-    //--------------------------------------------------
-    // System States
-    //--------------------------------------------------
-
-    Booting,
-
-    Idle,
+public:
 
     //--------------------------------------------------
-    // Detection
+    // Singleton
     //--------------------------------------------------
 
-    PersonDetected,
+    static FFTWorkspace& shared();
 
     //--------------------------------------------------
-    // Stable Human
+    // Initialize
     //--------------------------------------------------
 
-    Still,
+    bool begin();
 
     //--------------------------------------------------
-    // Motion
+    // Reset
     //--------------------------------------------------
 
-    Monitoring,
-
-    Walking,
-
-    Running,
+    void reset();
 
     //--------------------------------------------------
-    // Gesture
+    // Buffers
     //--------------------------------------------------
 
-    GestureDetected,
+    float* real();
+
+    float* imag();
+
+    float* magnitude();
 
     //--------------------------------------------------
-    // Emergency
+    // Information
     //--------------------------------------------------
 
-    FallDetected,
+    uint16_t capacity() const;
 
-    Alert
+    bool ready() const;
+
+private:
+
+    FFTWorkspace();
+
+    bool _ready;
 };
 
 #endif

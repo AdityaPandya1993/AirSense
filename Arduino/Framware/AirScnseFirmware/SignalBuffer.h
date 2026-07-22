@@ -1,18 +1,18 @@
 //
-//  HumanStateMachine.h
+//  SignalBuffer.h
 //  AirSense Firmware
+//
+//  AirSense DSP Refactor V2
 //
 //  Created by Aditya Pandya
 //
 
-#ifndef HUMAN_STATE_MACHINE_H
-#define HUMAN_STATE_MACHINE_H
+#ifndef SIGNAL_BUFFER_H
+#define SIGNAL_BUFFER_H
 
 #include <Arduino.h>
 
-#include "HumanState.h"
-
-class HumanStateMachine
+class SignalBuffer
 {
 public:
 
@@ -20,48 +20,58 @@ public:
     // Singleton
     //--------------------------------------------------
 
-    static HumanStateMachine& shared();
+    static SignalBuffer& shared();
 
     //--------------------------------------------------
-    // Current State
-    //--------------------------------------------------
-
-    HumanState currentState() const;
-
-    //--------------------------------------------------
-    // Simulation Mode
-    //--------------------------------------------------
-
-    void nextState();
-
-    //--------------------------------------------------
-    // Real CSI Mode
+    // Store Signal
     //--------------------------------------------------
 
     void update(
-        bool personDetected,
-        float filteredMotionEnergy
+        const float* samples,
+        uint16_t count
     );
 
     //--------------------------------------------------
-    // Reset State Machine
+    // Access Signal
     //--------------------------------------------------
 
-    void reset();
+    const float* samples() const;
+
+    //--------------------------------------------------
+    // Information
+    //--------------------------------------------------
+
+    uint16_t sampleCount() const;
+
+    //--------------------------------------------------
+    // Individual Sample
+    //--------------------------------------------------
+
+    float sample(
+        uint16_t index
+    ) const;
 
 private:
 
-    //--------------------------------------------------
-    // Constructor
-    //--------------------------------------------------
-
-    HumanStateMachine();
+    SignalBuffer();
 
     //--------------------------------------------------
-    // Current State
+    // Maximum Samples
     //--------------------------------------------------
 
-    HumanState _state;
+    static constexpr uint16_t MAX_SAMPLES = 256;
+
+    //--------------------------------------------------
+    // Sample Buffer
+    //--------------------------------------------------
+
+    float _samples[MAX_SAMPLES];
+
+    //--------------------------------------------------
+    // Sample Count
+    //--------------------------------------------------
+
+    uint16_t _count;
 };
 
 #endif

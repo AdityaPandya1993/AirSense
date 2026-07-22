@@ -2,8 +2,6 @@
 //  VarianceAnalyzer.cpp
 //  AirSense Firmware
 //
-//  Version : 2.0
-//
 
 #include "VarianceAnalyzer.h"
 
@@ -11,22 +9,25 @@ VarianceAnalyzer&
 VarianceAnalyzer::shared()
 {
     static VarianceAnalyzer analyzer;
+
     return analyzer;
 }
 
 VarianceAnalyzer::VarianceAnalyzer()
 {
-    _currentVariance = 0.0f;
+    _variance = 0.0f;
+    _mean = 0.0f;
 }
 
 void VarianceAnalyzer::update(
     const float* samples,
-    int count
+    uint16_t count
 )
 {
-    if (count <= 1)
+    if (count == 0)
     {
-        _currentVariance = 0.0f;
+        _mean = 0.0f;
+        _variance = 0.0f;
         return;
     }
 
@@ -34,33 +35,39 @@ void VarianceAnalyzer::update(
     // Mean
     //--------------------------------------------------
 
-    float mean = 0.0f;
+    float sum = 0.0f;
 
-    for (int i = 0; i < count; i++)
+    for (uint16_t i = 0; i < count; i++)
     {
-        mean += samples[i];
+        sum += samples[i];
     }
 
-    mean /= count;
+    _mean = sum / count;
 
     //--------------------------------------------------
     // Variance
     //--------------------------------------------------
 
-    float variance = 0.0f;
+    float varianceSum = 0.0f;
 
-    for (int i = 0; i < count; i++)
+    for (uint16_t i = 0; i < count; i++)
     {
-        float diff = samples[i] - mean;
-        variance += diff * diff;
+        float diff = samples[i] - _mean;
+
+        varianceSum += diff * diff;
     }
 
-    variance /= (count - 1);
-
-    _currentVariance = variance;
+    _variance = varianceSum / count;
 }
 
-float VarianceAnalyzer::currentVariance() const
+float
+VarianceAnalyzer::currentVariance() const
 {
-    return _currentVariance;
+    return _variance;
+}
+
+float
+VarianceAnalyzer::currentMean() const
+{
+    return _mean;
 }

@@ -2,15 +2,35 @@
 //  PacketAnalyzer.cpp
 //  AirSense Firmware
 //
-//  Created by Aditya Pandya
+//  AirSense DSP Refactor V3
 //
 
 #include "PacketAnalyzer.h"
 
 #include "IQDecoder.h"
 #include "CSIConverter.h"
+
 #include "DCRemoval.h"
 #include "LowPassFilter.h"
+
+#include "MotionEnergy.h"
+#include "MotionEnergyFilter.h"
+
+#include "HumanStateMachine.h"
+
+#include "DSPPacketAnalyzerV3.h"
+
+#include "DSPConfig.h"
+
+////////////////////////////////////////////////////////
+// DSP Temporary Buffer
+////////////////////////////////////////////////////////
+
+static float dspAmplitudeBuffer[DSPConfig::FFT_SIZE];
+
+////////////////////////////////////////////////////////
+// Singleton
+////////////////////////////////////////////////////////
 
 PacketAnalyzer&
 PacketAnalyzer::shared()
@@ -20,9 +40,18 @@ PacketAnalyzer::shared()
     return analyzer;
 }
 
+////////////////////////////////////////////////////////
+// Constructor
+////////////////////////////////////////////////////////
+
 PacketAnalyzer::PacketAnalyzer()
 {
+
 }
+
+////////////////////////////////////////////////////////
+// Begin
+////////////////////////////////////////////////////////
 
 void PacketAnalyzer::begin()
 {
@@ -31,20 +60,36 @@ void PacketAnalyzer::begin()
     Serial.println("========================================");
     Serial.println("     AirSense Packet Analyzer Ready");
     Serial.println("========================================");
+
+    //--------------------------------------------------
+    // Initialize DSP V3
+    //--------------------------------------------------
+
+    DSPPacketAnalyzerV3::shared().begin();
+
+    Serial.println("DSP Pipeline V3 Ready");
+
+    Serial.println("========================================");
 }
+
+////////////////////////////////////////////////////////
+// Analyze
+////////////////////////////////////////////////////////
 
 void PacketAnalyzer::analyze(
     const RawCSIFrame& frame
 )
 {
     //--------------------------------------------------
-    // Decode IQ
+    // IQ Decoder
     //--------------------------------------------------
 
-    IQDecoder::shared().decode(frame);
+    IQDecoder::shared().decode(
+        frame
+    );
 
     //--------------------------------------------------
-    // IQ -> CSI
+    // CSI Converter
     //--------------------------------------------------
 
     CSIConverter::shared().convert(
@@ -71,19 +116,70 @@ void PacketAnalyzer::analyze(
     );
 
     //--------------------------------------------------
-    // Print Header
+    // Prepare DSP Buffer
+    //--------------------------------------------------
+
+    uint16_t count =
+        LowPassFilter::shared().sampleCount();
+
+    const FilteredSample* filtered =
+        LowPassFilter::shared().samples();
+
+    if (count > DSPConfig::FFT_SIZE)
+    {
+        count = DSPConfig::FFT_SIZE;
+    }
+
+    for (uint16_t i = 0; i < count; i++)
+    {
+        dspAmplitudeBuffer[i] =
+            filtered[i].amplitude;
+    }
+
+    //--------------------------------------------------
+    // Execute DSP Pipeline V3
+    //--------------------------------------------------
+
+    DSPPacketAnalyzerV3::shared().process(
+        dspAmplitudeBuffer,
+        count
+    );
+
+        //--------------------------------------------------
+    // Motion Energy
+    //--------------------------------------------------
+
+    MotionEnergy::shared().calculate(
+        LowPassFilter::shared().samples(),
+        LowPassFilter::shared().sampleCount()
+    );
+
+    //--------------------------------------------------
+    // Motion Energy Filter
+    //--------------------------------------------------
+
+    MotionEnergyFilter::shared().filter(
+        MotionEnergy::shared().energy()
+    );
+
+    //--------------------------------------------------
+    // Human State Machine
+    //--------------------------------------------------
+
+    HumanStateMachine::shared().update(
+        true,
+        MotionEnergyFilter::shared().energy()
+    );
+
+    //--------------------------------------------------
+    // Print Packet Information
     //--------------------------------------------------
 
     printHeader();
 
-    //--------------------------------------------------
-    // Packet Summary
-    //--------------------------------------------------
-
-    printSummary(frame);
-        //--------------------------------------------------
-    // Raw Signed Values
-    //--------------------------------------------------
+    printSummary(
+        frame
+    );
 
     printSignedSamples(
         frame,
@@ -91,28 +187,16 @@ void PacketAnalyzer::analyze(
         32
     );
 
-    //--------------------------------------------------
-    // IQ Samples
-    //--------------------------------------------------
-
     printIQPairs(
         frame,
         12,
         16
     );
 
-    //--------------------------------------------------
-    // CSI Samples
-    //--------------------------------------------------
-
     printCSISamples(
         CSIConverter::shared().samples(),
         CSIConverter::shared().sampleCount()
     );
-
-    //--------------------------------------------------
-    // DC Removal
-    //--------------------------------------------------
 
     printCenteredSamples(
         CSIConverter::shared().samples(),
@@ -121,20 +205,22 @@ void PacketAnalyzer::analyze(
         DCRemoval::shared().meanAmplitude()
     );
 
-    //--------------------------------------------------
-    // Low Pass Filter
-    //--------------------------------------------------
-
     printFilteredSamples(
         DCRemoval::shared().samples(),
         LowPassFilter::shared().samples(),
         LowPassFilter::shared().sampleCount()
     );
-}
 
-//
-// MARK: - Header
-//
+    printMotionEnergyFilter(
+        MotionEnergy::shared().energy(),
+        MotionEnergyFilter::shared().energy()
+    );
+
+    printHumanState();
+}
+////////////////////////////////////////////////////////
+// Header
+////////////////////////////////////////////////////////
 
 void PacketAnalyzer::printHeader() const
 {
@@ -145,9 +231,9 @@ void PacketAnalyzer::printHeader() const
     Serial.println("========================================");
 }
 
-//
-// MARK: - Summary
-//
+////////////////////////////////////////////////////////
+// Summary
+////////////////////////////////////////////////////////
 
 void PacketAnalyzer::printSummary(
     const RawCSIFrame& frame
@@ -175,9 +261,10 @@ void PacketAnalyzer::printSummary(
 
     Serial.println("----------------------------------------");
 }
-//
-// MARK: - Signed Samples
-//
+
+////////////////////////////////////////////////////////
+// Raw Signed Values
+////////////////////////////////////////////////////////
 
 void PacketAnalyzer::printSignedSamples(
     const RawCSIFrame& frame,
@@ -195,8 +282,11 @@ void PacketAnalyzer::printSignedSamples(
             break;
         }
 
-        Serial.print((int8_t)frame.data[startOffset + i]);
-        Serial.print("\t");
+        Serial.print(
+            (int8_t)frame.data[startOffset + i]
+        );
+
+        Serial.print('\t');
 
         if ((i + 1) % 8 == 0)
         {
@@ -207,10 +297,9 @@ void PacketAnalyzer::printSignedSamples(
     Serial.println();
     Serial.println("----------------------------------------");
 }
-
-//
-// MARK: - IQ Samples
-//
+////////////////////////////////////////////////////////
+// IQ Samples
+////////////////////////////////////////////////////////
 
 void PacketAnalyzer::printIQPairs(
     const RawCSIFrame& frame,
@@ -234,16 +323,16 @@ void PacketAnalyzer::printIQPairs(
         }
 
         int8_t iValue =
-            (int8_t)frame.data[index];
+            frame.data[index];
 
         int8_t qValue =
-            (int8_t)frame.data[index + 1];
+            frame.data[index + 1];
 
         Serial.print(i);
-        Serial.print("\t");
+        Serial.print('\t');
 
         Serial.print(iValue);
-        Serial.print("\t");
+        Serial.print('\t');
 
         Serial.println(qValue);
     }
@@ -251,9 +340,10 @@ void PacketAnalyzer::printIQPairs(
     Serial.println();
     Serial.println("----------------------------------------");
 }
-//
-// MARK: - CSI Samples
-//
+
+////////////////////////////////////////////////////////
+// CSI Samples
+////////////////////////////////////////////////////////
 
 void PacketAnalyzer::printCSISamples(
     const CSISample* samples,
@@ -265,19 +355,16 @@ void PacketAnalyzer::printCSISamples(
 
     Serial.println("Idx\tAmplitude\tPhase");
 
-    uint16_t maxSamples = count;
-
-    if (maxSamples > 16)
-    {
-        maxSamples = 16;
-    }
+    uint16_t maxSamples =
+        min<uint16_t>(count, 16);
 
     for (uint16_t i = 0; i < maxSamples; i++)
     {
-        Serial.print(samples[i].index);
-        Serial.print("\t");
+        Serial.print(i);
+        Serial.print('\t');
 
         Serial.print(samples[i].amplitude, 4);
+
         Serial.print("\t\t");
 
         Serial.println(samples[i].phase, 4);
@@ -286,103 +373,173 @@ void PacketAnalyzer::printCSISamples(
     Serial.println();
     Serial.println("----------------------------------------");
 }
+//--------------------------------------------------
+// Motion Energy
+//--------------------------------------------------
 
-//
-// MARK: - DC Removal
-//
-
-void PacketAnalyzer::printCenteredSamples(
-    const CSISample* original,
-    const CenteredSample* centered,
-    uint16_t count,
-    float mean
+void PacketAnalyzer::printMotionEnergyFilter(
+    float rawEnergy,
+    float filteredEnergy
 ) const
 {
-    Serial.println("DC REMOVAL");
+    Serial.println("MOTION ENERGY");
     Serial.println();
 
-    Serial.print("Mean Amplitude : ");
-    Serial.println(mean, 4);
+    Serial.print("Raw Energy      : ");
+    Serial.println(rawEnergy, 6);
+
+    Serial.print("Filtered Energy : ");
+    Serial.println(filteredEnergy, 6);
 
     Serial.println();
-    Serial.println("Idx\tOriginal\tCentered");
 
-    uint16_t maxSamples = count;
+    Serial.print("Motion State    : ");
 
-    if (maxSamples > 16)
+    if (filteredEnergy < 0.02f)
     {
-        maxSamples = 16;
+        Serial.println("Still");
     }
-
-    float centeredMean = 0.0f;
-
-    //--------------------------------------------------
-    // Calculate Mean Using ALL Samples
-    //--------------------------------------------------
-
-    for (uint16_t i = 0; i < count; i++)
+    else if (filteredEnergy < 0.20f)
     {
-        centeredMean += centered[i].amplitude;
+        Serial.println("Monitoring");
     }
-
-    centeredMean /= count;
-
-    //--------------------------------------------------
-    // Print First Samples
-    //--------------------------------------------------
-
-    for (uint16_t i = 0; i < maxSamples; i++)
+    else if (filteredEnergy < 1.00f)
     {
-        Serial.print(centered[i].index);
-        Serial.print("\t");
-
-        Serial.print(original[i].amplitude, 4);
-        Serial.print("\t\t");
-
-        Serial.println(centered[i].amplitude, 4);
+        Serial.println("Walking");
+    }
+    else if (filteredEnergy < 3.00f)
+    {
+        Serial.println("Running");
+    }
+    else
+    {
+        Serial.println("Alert");
     }
 
     Serial.println();
 
-    Serial.print("Centered Mean : ");
-    Serial.println(centeredMean, 6);
+    //--------------------------------------------------
+    // DSP V3 Result
+    //--------------------------------------------------
 
+    Serial.println("----------- DSP V3 -----------");
+
+    Serial.print("Detected       : ");
+    Serial.println(
+        DSPPacketAnalyzerV3::shared().detected()
+            ? "YES"
+            : "NO"
+    );
+
+    Serial.print("Heart Rate     : ");
+    Serial.print(
+        DSPPacketAnalyzerV3::shared().heartRate(),
+        2
+    );
+    Serial.println(" BPM");
+
+    Serial.print("Breathing Rate : ");
+    Serial.print(
+        DSPPacketAnalyzerV3::shared().breathingRate(),
+        2
+    );
+    Serial.println(" RPM");
+
+    Serial.print("Confidence     : ");
+    Serial.print(
+        DSPPacketAnalyzerV3::shared().confidence(),
+        2
+    );
+    Serial.println(" %");
+
+    Serial.println("------------------------------");
     Serial.println();
-    Serial.println("----------------------------------------");
 }
+//--------------------------------------------------
+// Human State
+//--------------------------------------------------
 
-//
-// MARK: - Low Pass Filter
-//
-
-void PacketAnalyzer::printFilteredSamples(
-    const CenteredSample* centered,
-    const FilteredSample* filtered,
-    uint16_t count
-) const
+void PacketAnalyzer::printHumanState() const
 {
-    Serial.println("LOW PASS FILTER");
+    Serial.println("CURRENT HUMAN STATE");
     Serial.println();
 
-    Serial.println("Idx\tCentered\tFiltered");
+    Serial.print("State : ");
 
-    uint16_t maxSamples = count;
-
-    if (maxSamples > 16)
+    switch (HumanStateMachine::shared().currentState())
     {
-        maxSamples = 16;
+        case HumanState::Booting:
+            Serial.println("Booting");
+            break;
+
+        case HumanState::Idle:
+            Serial.println("Idle");
+            break;
+
+        case HumanState::PersonDetected:
+            Serial.println("PersonDetected");
+            break;
+
+        case HumanState::Still:
+            Serial.println("Still");
+            break;
+
+        case HumanState::Monitoring:
+            Serial.println("Monitoring");
+            break;
+
+        case HumanState::Walking:
+            Serial.println("Walking");
+            break;
+
+        case HumanState::Running:
+            Serial.println("Running");
+            break;
+
+        case HumanState::GestureDetected:
+            Serial.println("GestureDetected");
+            break;
+
+        case HumanState::FallDetected:
+            Serial.println("FallDetected");
+            break;
+
+        case HumanState::Alert:
+            Serial.println("Alert");
+            break;
+
+        default:
+            Serial.println("Unknown");
+            break;
     }
 
-    for (uint16_t i = 0; i < maxSamples; i++)
-    {
-        Serial.print(filtered[i].index);
-        Serial.print("\t");
+    Serial.println();
 
-        Serial.print(centered[i].amplitude, 4);
-        Serial.print("\t\t");
+    Serial.print("Confidence : ");
+    Serial.print(
+        DSPPacketAnalyzerV3::shared().confidence(),
+        2
+    );
+    Serial.println(" %");
 
-        Serial.println(filtered[i].amplitude, 4);
-    }
+    Serial.print("Heart BPM  : ");
+    Serial.println(
+        DSPPacketAnalyzerV3::shared().heartRate(),
+        2
+    );
+
+    Serial.print("Breathing  : ");
+    Serial.println(
+        DSPPacketAnalyzerV3::shared().breathingRate(),
+        2
+    );
+
+    Serial.print("Detected   : ");
+    Serial.println(
+        DSPPacketAnalyzerV3::shared().detected()
+            ? "YES"
+            : "NO"
+    );
 
     Serial.println();
     Serial.println("========================================");

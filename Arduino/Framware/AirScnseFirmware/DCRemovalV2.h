@@ -1,14 +1,16 @@
 //
-//  VarianceAnalyzer.h
+//  DCRemovalV2.h
 //  AirSense Firmware
 //
+//  AirSense DSP Refactor V2.1
+//
 
-#ifndef VARIANCE_ANALYZER_H
-#define VARIANCE_ANALYZER_H
+#ifndef DC_REMOVAL_V2_H
+#define DC_REMOVAL_V2_H
 
 #include <Arduino.h>
 
-class VarianceAnalyzer
+class DCRemovalV2
 {
 public:
 
@@ -16,30 +18,23 @@ public:
     // Singleton
     //--------------------------------------------------
 
-    static VarianceAnalyzer& shared();
+    static DCRemovalV2& shared();
 
     //--------------------------------------------------
-    // Update
+    // Remove DC Component
     //--------------------------------------------------
 
-    void update(
-        const float* samples,
-        uint16_t count
-    );
+    void process();
 
     //--------------------------------------------------
-    // Results
+    // Information
     //--------------------------------------------------
 
-    float currentVariance() const;
-
-    float currentMean() const;
+    float mean() const;
 
 private:
 
-    VarianceAnalyzer();
-
-    float _variance;
+    DCRemovalV2();
 
     float _mean;
 };

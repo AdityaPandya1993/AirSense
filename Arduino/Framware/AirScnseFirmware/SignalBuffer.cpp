@@ -1,0 +1,95 @@
+//
+//  SignalBuffer.cpp
+//  AirSense Firmware
+//
+//  AirSense DSP Refactor V2
+//
+//  Created by Aditya Pandya
+//
+
+#include "SignalBuffer.h"
+
+////////////////////////////////////////////////////////
+// Singleton
+////////////////////////////////////////////////////////
+
+SignalBuffer&
+SignalBuffer::shared()
+{
+    static SignalBuffer buffer;
+
+    return buffer;
+}
+
+////////////////////////////////////////////////////////
+// Constructor
+////////////////////////////////////////////////////////
+
+SignalBuffer::SignalBuffer()
+{
+    _count = 0;
+
+    for (uint16_t i = 0; i < MAX_SAMPLES; i++)
+    {
+        _samples[i] = 0.0f;
+    }
+}
+
+////////////////////////////////////////////////////////
+// Store Signal
+////////////////////////////////////////////////////////
+
+void SignalBuffer::update(
+    const float* samples,
+    uint16_t count
+)
+{
+    if (count > MAX_SAMPLES)
+    {
+        count = MAX_SAMPLES;
+    }
+
+    _count = count;
+
+    for (uint16_t i = 0; i < count; i++)
+    {
+        _samples[i] = samples[i];
+    }
+}
+
+////////////////////////////////////////////////////////
+// Get Buffer
+////////////////////////////////////////////////////////
+
+const float*
+SignalBuffer::samples() const
+{
+    return _samples;
+}
+
+////////////////////////////////////////////////////////
+// Sample Count
+////////////////////////////////////////////////////////
+
+uint16_t
+SignalBuffer::sampleCount() const
+{
+    return _count;
+}
+
+////////////////////////////////////////////////////////
+// Individual Sample
+////////////////////////////////////////////////////////
+
+float
+SignalBuffer::sample(
+    uint16_t index
+) const
+{
+    if (index >= _count)
+    {
+        return 0.0f;
+    }
+
+    return _samples[index];
+}

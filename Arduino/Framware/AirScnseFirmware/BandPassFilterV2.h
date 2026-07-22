@@ -1,18 +1,18 @@
 //
-//  HumanStateMachine.h
+//  BandPassFilterV2.h
 //  AirSense Firmware
+//
+//  AirSense DSP Refactor V2.2
 //
 //  Created by Aditya Pandya
 //
 
-#ifndef HUMAN_STATE_MACHINE_H
-#define HUMAN_STATE_MACHINE_H
+#ifndef BAND_PASS_FILTER_V2_H
+#define BAND_PASS_FILTER_V2_H
 
 #include <Arduino.h>
 
-#include "HumanState.h"
-
-class HumanStateMachine
+class BandPassFilterV2
 {
 public:
 
@@ -20,48 +20,47 @@ public:
     // Singleton
     //--------------------------------------------------
 
-    static HumanStateMachine& shared();
+    static BandPassFilterV2& shared();
 
     //--------------------------------------------------
-    // Current State
+    // Process Working Buffer
     //--------------------------------------------------
 
-    HumanState currentState() const;
+    void process();
 
     //--------------------------------------------------
-    // Simulation Mode
-    //--------------------------------------------------
-
-    void nextState();
-
-    //--------------------------------------------------
-    // Real CSI Mode
-    //--------------------------------------------------
-
-    void update(
-        bool personDetected,
-        float filteredMotionEnergy
-    );
-
-    //--------------------------------------------------
-    // Reset State Machine
+    // Reset Filter State
     //--------------------------------------------------
 
     void reset();
 
+    //--------------------------------------------------
+    // Debug
+    //--------------------------------------------------
+
+    void printDebug() const;
+
+    //--------------------------------------------------
+    // Information
+    //--------------------------------------------------
+
+    float highPassAlpha() const;
+
+    float lowPassAlpha() const;
+
 private:
 
-    //--------------------------------------------------
-    // Constructor
-    //--------------------------------------------------
-
-    HumanStateMachine();
+    BandPassFilterV2();
 
     //--------------------------------------------------
-    // Current State
+    // Previous Filter States
     //--------------------------------------------------
 
-    HumanState _state;
+    float _previousInput;
+
+    float _previousHighPass;
+
+    float _previousLowPass;
 };
 
 #endif
