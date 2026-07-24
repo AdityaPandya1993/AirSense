@@ -6,7 +6,7 @@
 //
 
 #include "BandPassFilter.h"
-#include "SignalBuffer.h"
+#include "SignalBufferV2.h"
 
 BandPassFilter&
 BandPassFilter::shared()

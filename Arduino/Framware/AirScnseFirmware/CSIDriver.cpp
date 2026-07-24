@@ -74,11 +74,11 @@ bool CSIDriver::enableCSI()
     config.lltf_en = true;
     config.htltf_en = true;
     config.stbc_htltf2_en = true;
-    config.ltf_merge_en = true;
+    config.ltf_merge_en = false;
 
-    config.channel_filter_en = true;
-    config.manu_scale = false;
-    config.shift = false;
+    config.channel_filter_en = false;
+    config.manu_scale = true;
+    config.shift = true;
 
     esp_err_t err;
 
@@ -95,6 +95,14 @@ bool CSIDriver::enableCSI()
     }
 
     err = esp_wifi_set_csi(true);
+
+    //--------------------------------------------------
+    // Disable WiFi Power Save
+    //--------------------------------------------------
+
+    esp_wifi_set_ps(WIFI_PS_NONE);
+
+    Serial.println("WiFi Power Save : OFF");
 
     if (err != ESP_OK)
     {

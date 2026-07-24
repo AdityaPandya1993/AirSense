@@ -2,9 +2,7 @@
 //  SignalBuffer.cpp
 //  AirSense Firmware
 //
-//  AirSense DSP Refactor V2
-//
-//  Created by Aditya Pandya
+//  DSP V4.1
 //
 
 #include "SignalBuffer.h"
@@ -16,9 +14,9 @@
 SignalBuffer&
 SignalBuffer::shared()
 {
-    static SignalBuffer buffer;
+    static SignalBuffer instance;
 
-    return buffer;
+    return instance;
 }
 
 ////////////////////////////////////////////////////////
@@ -27,16 +25,29 @@ SignalBuffer::shared()
 
 SignalBuffer::SignalBuffer()
 {
+    clear();
+}
+
+////////////////////////////////////////////////////////
+// Clear
+////////////////////////////////////////////////////////
+
+void SignalBuffer::clear()
+{
     _count = 0;
 
-    for (uint16_t i = 0; i < MAX_SAMPLES; i++)
+    for (uint16_t i = 0; i < DSPConfig::FFT_SIZE; i++)
     {
-        _samples[i] = 0.0f;
+        _raw[i] = 0.0f;
+
+        _working[i] = 0.0f;
+
+        _fft[i] = 0.0f;
     }
 }
 
 ////////////////////////////////////////////////////////
-// Store Signal
+// Update Raw Signal
 ////////////////////////////////////////////////////////
 
 void SignalBuffer::update(
@@ -44,27 +55,76 @@ void SignalBuffer::update(
     uint16_t count
 )
 {
-    if (count > MAX_SAMPLES)
+    if (samples == nullptr)
     {
-        count = MAX_SAMPLES;
+        return;
+    }
+
+    if (count > DSPConfig::FFT_SIZE)
+    {
+        count = DSPConfig::FFT_SIZE;
     }
 
     _count = count;
 
     for (uint16_t i = 0; i < count; i++)
     {
-        _samples[i] = samples[i];
+        _raw[i] = samples[i];
     }
 }
 
 ////////////////////////////////////////////////////////
-// Get Buffer
+// Copy Raw -> Working
+////////////////////////////////////////////////////////
+
+void SignalBuffer::copyRawToWorking()
+{
+    for (uint16_t i = 0; i < _count; i++)
+    {
+        _working[i] = _raw[i];
+    }
+}
+
+////////////////////////////////////////////////////////
+// Copy Working -> FFT
+////////////////////////////////////////////////////////
+
+void SignalBuffer::copyWorkingToFFT()
+{
+    for (uint16_t i = 0; i < _count; i++)
+    {
+        _fft[i] = _working[i];
+    }
+}
+
+////////////////////////////////////////////////////////
+// Raw Samples
 ////////////////////////////////////////////////////////
 
 const float*
-SignalBuffer::samples() const
+SignalBuffer::rawSamples() const
 {
-    return _samples;
+    return _raw;
+}
+
+////////////////////////////////////////////////////////
+// Working Samples
+////////////////////////////////////////////////////////
+
+float*
+SignalBuffer::workingSamples()
+{
+    return _working;
+}
+
+////////////////////////////////////////////////////////
+// FFT Samples
+////////////////////////////////////////////////////////
+
+float*
+SignalBuffer::fftSamples()
+{
+    return _fft;
 }
 
 ////////////////////////////////////////////////////////
@@ -78,18 +138,11 @@ SignalBuffer::sampleCount() const
 }
 
 ////////////////////////////////////////////////////////
-// Individual Sample
+// Capacity
 ////////////////////////////////////////////////////////
 
-float
-SignalBuffer::sample(
-    uint16_t index
-) const
+uint16_t
+SignalBuffer::capacity() const
 {
-    if (index >= _count)
-    {
-        return 0.0f;
-    }
-
-    return _samples[index];
+    return DSPConfig::FFT_SIZE;
 }

@@ -22,6 +22,34 @@
 
 #include "DSPConfig.h"
 
+#include "DeviceController.h"
+#include "HumanEntity.h"
+
+#include <math.h>
+
+////////////////////////////////////////////////////////
+// State -> Motion String
+////////////////////////////////////////////////////////
+
+static String motionStringForState(HumanState state)
+{
+    switch (state)
+    {
+        case HumanState::Booting:         return "Booting";
+        case HumanState::Idle:            return "Idle";
+        case HumanState::PersonDetected:  return "Detected";
+        case HumanState::Still:           return "Still";
+        case HumanState::Monitoring:      return "Monitoring";
+        case HumanState::Walking:         return "Walking";
+        case HumanState::Running:         return "Running";
+        case HumanState::GestureDetected: return "Gesture";
+        case HumanState::FallDetected:    return "Falling";
+        case HumanState::Alert:           return "Alert";
+    }
+
+    return "Unknown";
+}
+
 ////////////////////////////////////////////////////////
 // DSP Temporary Buffer
 ////////////////////////////////////////////////////////
@@ -60,6 +88,21 @@ void PacketAnalyzer::begin()
     Serial.println("========================================");
     Serial.println("     AirSense Packet Analyzer Ready");
     Serial.println("========================================");
+
+    static uint32_t analyzerCounter = 0;
+    static uint32_t analyzerTime = millis();
+
+    analyzerCounter++;
+
+    if (millis() - analyzerTime > 1000)
+    {
+        Serial.print("Analyzer/sec : ");
+        Serial.println(analyzerCounter);
+
+        analyzerCounter = 0;
+
+        analyzerTime = millis();
+    }
 
     //--------------------------------------------------
     // Initialize DSP V3
@@ -166,10 +209,32 @@ void PacketAnalyzer::analyze(
     // Human State Machine
     //--------------------------------------------------
 
+    bool personDetected =
+        DSPPacketAnalyzerV3::shared().detected();
+
     HumanStateMachine::shared().update(
-        true,
+        personDetected,
         MotionEnergyFilter::shared().energy()
     );
+
+    //--------------------------------------------------
+    // Push Real Results To Device Controller
+    //--------------------------------------------------
+
+    HumanEntity human;
+
+    human.state = HumanStateMachine::shared().currentState();
+    human.detected = personDetected;
+    human.personCount = personDetected ? 1 : 0;
+    human.motion = motionStringForState(human.state);
+    human.heartRate = (int)roundf(DSPPacketAnalyzerV3::shared().heartRate());
+    human.breathing = (int)roundf(DSPPacketAnalyzerV3::shared().breathingRate());
+
+    // No real spatial tracking wired up yet, so position stays at origin.
+    human.x = 0.0f;
+    human.y = 0.0f;
+
+    DeviceController::shared().updateHuman(human);
 
     //--------------------------------------------------
     // Print Packet Information
@@ -368,6 +433,77 @@ void PacketAnalyzer::printCSISamples(
         Serial.print("\t\t");
 
         Serial.println(samples[i].phase, 4);
+    }
+
+    Serial.println();
+    Serial.println("----------------------------------------");
+}
+//--------------------------------------------------
+// DC Removal
+//--------------------------------------------------
+
+void PacketAnalyzer::printCenteredSamples(
+    const CSISample* original,
+    const CenteredSample* centered,
+    uint16_t count,
+    float mean
+) const
+{
+    Serial.println("DC REMOVAL OUTPUT");
+    Serial.println();
+
+    Serial.print("Mean Amplitude : ");
+    Serial.println(mean, 4);
+    Serial.println();
+
+    Serial.println("Idx\tOriginal\tCentered");
+
+    uint16_t maxSamples =
+        min<uint16_t>(count, 16);
+
+    for (uint16_t i = 0; i < maxSamples; i++)
+    {
+        Serial.print(i);
+        Serial.print('\t');
+
+        Serial.print(original[i].amplitude, 4);
+
+        Serial.print("\t\t");
+
+        Serial.println(centered[i].amplitude, 4);
+    }
+
+    Serial.println();
+    Serial.println("----------------------------------------");
+}
+//--------------------------------------------------
+// Low Pass Filter
+//--------------------------------------------------
+
+void PacketAnalyzer::printFilteredSamples(
+    const CenteredSample* original,
+    const FilteredSample* filtered,
+    uint16_t count
+) const
+{
+    Serial.println("LOW PASS FILTER OUTPUT");
+    Serial.println();
+
+    Serial.println("Idx\tCentered\tFiltered");
+
+    uint16_t maxSamples =
+        min<uint16_t>(count, 16);
+
+    for (uint16_t i = 0; i < maxSamples; i++)
+    {
+        Serial.print(i);
+        Serial.print('\t');
+
+        Serial.print(original[i].amplitude, 4);
+
+        Serial.print("\t\t");
+
+        Serial.println(filtered[i].amplitude, 4);
     }
 
     Serial.println();

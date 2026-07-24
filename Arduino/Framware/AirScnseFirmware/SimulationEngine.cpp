@@ -69,6 +69,19 @@ void SimulationEngine::update()
 
     switch (state)
     {
+        case HumanState::Booting:
+
+            human.state = HumanState::Booting;
+            human.detected = false;
+            human.personCount = 0;
+            human.motion = "Booting";
+            human.heartRate = 0;
+            human.breathing = 0;
+            human.x = 0.0f;
+            human.y = 0.0f;
+
+            break;
+
         case HumanState::Idle:
 
             human.state = HumanState::Idle;
@@ -95,6 +108,19 @@ void SimulationEngine::update()
 
             break;
 
+        case HumanState::Still:
+
+            human.state = HumanState::Still;
+            human.detected = true;
+            human.personCount = 1;
+            human.motion = "Still";
+            human.heartRate = 70;
+            human.breathing = 14;
+            human.x = 2.0f;
+            human.y = 1.5f;
+
+            break;
+
         case HumanState::Monitoring:
 
             human.state = HumanState::Monitoring;
@@ -108,6 +134,32 @@ void SimulationEngine::update()
 
             break;
 
+        case HumanState::Walking:
+
+            human.state = HumanState::Walking;
+            human.detected = true;
+            human.personCount = 1;
+            human.motion = "Walking";
+            human.heartRate = 90;
+            human.breathing = 20;
+            human.x = 2.4f;
+            human.y = 1.9f;
+
+            break;
+
+        case HumanState::Running:
+
+            human.state = HumanState::Running;
+            human.detected = true;
+            human.personCount = 1;
+            human.motion = "Running";
+            human.heartRate = 110;
+            human.breathing = 24;
+            human.x = 2.8f;
+            human.y = 2.2f;
+
+            break;
+
         case HumanState::GestureDetected:
 
             human.state = HumanState::GestureDetected;
@@ -118,6 +170,19 @@ void SimulationEngine::update()
             human.breathing = 24;
             human.x = 2.8f;
             human.y = 2.2f;
+
+            break;
+
+        case HumanState::FallDetected:
+
+            human.state = HumanState::FallDetected;
+            human.detected = true;
+            human.personCount = 1;
+            human.motion = "Falling";
+            human.heartRate = 135;
+            human.breathing = 30;
+            human.x = 3.0f;
+            human.y = 2.5f;
 
             break;
 

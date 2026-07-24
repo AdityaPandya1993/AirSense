@@ -186,7 +186,7 @@ void FFTButterflyV3::butterfly(
 )
 {
 
-const float PI = 3.14159265358979323846f;
+const float PI_F = 3.14159265358979323846f;
 
     //--------------------------------------------------
     // FFT Stages
@@ -208,7 +208,7 @@ const float PI = 3.14159265358979323846f;
         //--------------------------------------------------
 
         float angle =
-            -2.0f * PI / length;
+            -2.0f * PI_F / length;
 
         float wMulReal =
             cosf(angle);

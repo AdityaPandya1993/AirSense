@@ -2,12 +2,12 @@
 //  DSPPacketAnalyzerV3.cpp
 //  AirSense Firmware
 //
-//  AirSense DSP Refactor V3
+//  AirSense DSP Refactor V4
 //
 
 #include "DSPPacketAnalyzerV3.h"
 
-#include "SignalBuffer.h"
+#include "SignalBufferV2.h"
 #include "FFTWorkspace.h"
 
 #include "DCRemovalV2.h"
@@ -22,6 +22,10 @@
 #include "HeartRateEstimatorV3.h"
 #include "BreathingEstimatorV3.h"
 #include "ConfidenceEngineV3.h"
+
+#include "CircularSignalBuffer.h"
+#include "PacketFeatureExtractor.h"
+#include "VitalSignalExtractor.h"
 
 #include "DSPConfig.h"
 
@@ -67,12 +71,17 @@ bool DSPPacketAnalyzerV3::begin()
 
     BreathingEstimatorV3::shared().begin();
 
+    VitalSignalExtractor::shared().begin();
+
     ConfidenceEngineV3::shared().begin();
+
+    CircularSignalBuffer::shared().begin();
 
     _ready = true;
 
     return true;
 }
+
 ////////////////////////////////////////////////////////
 // Process
 ////////////////////////////////////////////////////////
@@ -82,6 +91,25 @@ void DSPPacketAnalyzerV3::process(
     uint16_t count
 )
 {
+    //--------------------------------------------------
+    // Performance Counter
+    //--------------------------------------------------
+
+    static uint32_t dspCounter = 0;
+    static uint32_t dspTimer = millis();
+
+    dspCounter++;
+
+    if (millis() - dspTimer >= 1000)
+    {
+        Serial.print("DSP/sec : ");
+        Serial.println(dspCounter);
+
+        dspCounter = 0;
+
+        dspTimer = millis();
+    }
+
     //--------------------------------------------------
     // Validation
     //--------------------------------------------------
@@ -101,33 +129,62 @@ void DSPPacketAnalyzerV3::process(
         return;
     }
 
-    //--------------------------------------------------
-    // Limit Input Size
-    //--------------------------------------------------
-
     if (count > DSPConfig::FFT_SIZE)
     {
         count = DSPConfig::FFT_SIZE;
     }
 
     //--------------------------------------------------
-    // Store Raw Signal
+    // Convert Current CSI Packet
+    // -> Single Feature
     //--------------------------------------------------
 
-    SignalBuffer::shared().update(
-        samples,
-        count
+    float packetValue =
+        PacketFeatureExtractor::shared()
+            .extractAverageAmplitude(
+                samples,
+                count
+            );
+
+    //--------------------------------------------------
+    // Push Feature Into Circular Buffer
+    //--------------------------------------------------
+
+    CircularSignalBuffer::shared().push(
+        &packetValue,
+        1
     );
 
     //--------------------------------------------------
-    // Pre Processing
+    // Debug
     //--------------------------------------------------
 
-    DCRemovalV2::shared().process();
+    static uint32_t bufferTimer = millis();
 
-    BandPassFilterV2::shared().process();
+    if (millis() - bufferTimer >= 1000)
+    {
+        bufferTimer = millis();
 
-    WindowFunctionV2::shared().process();
+        Serial.print("Buffer Samples : ");
+
+        Serial.println(
+            CircularSignalBuffer::shared().totalSamples()
+        );
+    }
+
+    //--------------------------------------------------
+    // Wait Until FFT Buffer Full
+    //--------------------------------------------------
+
+    if (!CircularSignalBuffer::shared().ready())
+    {
+        return;
+    }
+
+    Serial.println();
+    Serial.println("==================================");
+    Serial.println(" FFT BUFFER READY ");
+    Serial.println("==================================");
 
     //--------------------------------------------------
     // FFT Workspace
@@ -141,36 +198,52 @@ void DSPPacketAnalyzerV3::process(
 
     float* magnitude =
         FFTWorkspace::shared().magnitude();
-            //--------------------------------------------------
-    // Copy Signal To FFT Workspace
+
+   //--------------------------------------------------
+    // Copy Circular Buffer -> SignalBufferV2
     //--------------------------------------------------
 
     const float* signal =
-        SignalBuffer::shared().samples();
+        CircularSignalBuffer::shared().data();
+
+    SignalBufferV2::shared().updateRaw(
+        signal,
+        DSPConfig::FFT_SIZE
+    );
+
+    SignalBufferV2::shared().copyRawToWorking();
+    //--------------------------------------------------
+    // DC Removal
+    //--------------------------------------------------
+
+    DCRemovalV2::shared().process();
 
     //--------------------------------------------------
-    // Zero Padding
+    // Band Pass Filter
     //--------------------------------------------------
 
-    for (uint16_t i = 0;
-         i < DSPConfig::FFT_SIZE;
-         i++)
+    BandPassFilterV2::shared().process();
+
+    //--------------------------------------------------
+    // Window Function
+    //--------------------------------------------------
+
+    WindowFunctionV2::shared().process();
+
+    SignalBufferV2::shared().copyWorkingToFFT();
+
+    //--------------------------------------------------
+    // FFT
+    //--------------------------------------------------
+
+    float* fft =
+        SignalBufferV2::shared().fftSamples();
+
+    for(uint16_t i = 0; i < DSPConfig::FFT_SIZE; i++)
     {
-        if (i < count)
-        {
-            real[i] = signal[i];
-        }
-        else
-        {
-            real[i] = 0.0f;
-        }
-
+        real[i] = fft[i];
         imag[i] = 0.0f;
     }
-
-    //--------------------------------------------------
-    // Execute FFT
-    //--------------------------------------------------
 
     FFTButterflyV3::shared().process(
         real,
@@ -179,7 +252,7 @@ void DSPPacketAnalyzerV3::process(
     );
 
     //--------------------------------------------------
-    // Magnitude Spectrum
+    // FFT Magnitude
     //--------------------------------------------------
 
     FFTMagnitudeV3::shared().process(
@@ -188,7 +261,8 @@ void DSPPacketAnalyzerV3::process(
         magnitude,
         DSPConfig::FFT_SIZE
     );
-        //--------------------------------------------------
+
+    //--------------------------------------------------
     // Peak Detection
     //--------------------------------------------------
 
@@ -196,10 +270,6 @@ void DSPPacketAnalyzerV3::process(
         magnitude,
         DSPConfig::FFT_SIZE
     );
-
-    //--------------------------------------------------
-    // Store Peak Results
-    //--------------------------------------------------
 
     _dominantBin =
         PeakDetectorV3::shared().peakIndex();
@@ -221,7 +291,21 @@ void DSPPacketAnalyzerV3::process(
     _dominantFrequency =
         FrequencyAnalyzerV3::shared().dominantFrequency();
 
-    //--------------------------------------------------
+    Serial.println();
+    Serial.println("========== FFT RESULT ==========");
+
+    Serial.print("Peak Bin : ");
+    Serial.println(_dominantBin);
+
+    Serial.print("Peak Magnitude : ");
+    Serial.println(_peakMagnitude, 6);
+
+    Serial.print("Dominant Frequency : ");
+    Serial.print(_dominantFrequency, 4);
+    Serial.println(" Hz");
+
+    Serial.println("===============================");
+        //--------------------------------------------------
     // Heart Rate Estimation
     //--------------------------------------------------
 
@@ -233,7 +317,7 @@ void DSPPacketAnalyzerV3::process(
         HeartRateEstimatorV3::shared().bpm();
 
     //--------------------------------------------------
-    // Breathing Estimation
+    // Breathing Rate Estimation
     //--------------------------------------------------
 
     BreathingEstimatorV3::shared().process(
@@ -258,45 +342,30 @@ void DSPPacketAnalyzerV3::process(
 
     _detected =
         ConfidenceEngineV3::shared().detected();
-            //--------------------------------------------------
-    // Debug Output
+
+    //--------------------------------------------------
+    // DSP Debug
     //--------------------------------------------------
 
     if (DSPConfig::PRINT_DSP)
     {
         Serial.println();
 
-        Serial.println("========== DSP V3 ==========");
+        Serial.println("========== DSP V4 ==========");
 
-        Serial.print("FFT Size           : ");
-        Serial.println(DSPConfig::FFT_SIZE);
-
-        Serial.print("Sample Count       : ");
-        Serial.println(count);
-
-        Serial.print("Peak Bin           : ");
-        Serial.println(_dominantBin);
-
-        Serial.print("Peak Magnitude     : ");
-        Serial.println(_peakMagnitude, 6);
-
-        Serial.print("Dominant Frequency : ");
-        Serial.print(_dominantFrequency, 4);
-        Serial.println(" Hz");
-
-        Serial.print("Heart Rate         : ");
+        Serial.print("Heart Rate : ");
         Serial.print(_heartRate, 2);
         Serial.println(" BPM");
 
-        Serial.print("Breathing Rate     : ");
+        Serial.print("Breathing : ");
         Serial.print(_breathingRate, 2);
         Serial.println(" RPM");
 
-        Serial.print("Confidence         : ");
+        Serial.print("Confidence : ");
         Serial.print(_confidence, 2);
         Serial.println(" %");
 
-        Serial.print("Detected           : ");
+        Serial.print("Detected : ");
         Serial.println(
             _detected
                 ? "YES"

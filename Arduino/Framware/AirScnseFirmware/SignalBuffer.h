@@ -2,15 +2,14 @@
 //  SignalBuffer.h
 //  AirSense Firmware
 //
-//  AirSense DSP Refactor V2
-//
-//  Created by Aditya Pandya
+//  DSP V4.1
 //
 
 #ifndef SIGNAL_BUFFER_H
 #define SIGNAL_BUFFER_H
 
 #include <Arduino.h>
+#include "DSPConfig.h"
 
 class SignalBuffer
 {
@@ -23,7 +22,7 @@ public:
     static SignalBuffer& shared();
 
     //--------------------------------------------------
-    // Store Signal
+    // Update Raw Signal
     //--------------------------------------------------
 
     void update(
@@ -32,10 +31,22 @@ public:
     );
 
     //--------------------------------------------------
-    // Access Signal
+    // Copy Operations
     //--------------------------------------------------
 
-    const float* samples() const;
+    void copyRawToWorking();
+
+    void copyWorkingToFFT();
+
+    //--------------------------------------------------
+    // Buffers
+    //--------------------------------------------------
+
+    const float* rawSamples() const;
+
+    float* workingSamples();
+
+    float* fftSamples();
 
     //--------------------------------------------------
     // Information
@@ -43,29 +54,31 @@ public:
 
     uint16_t sampleCount() const;
 
+    uint16_t capacity() const;
+
+    const float* samples() const;
+
     //--------------------------------------------------
-    // Individual Sample
+    // Utility
     //--------------------------------------------------
 
-    float sample(
-        uint16_t index
-    ) const;
+    void clear();
 
 private:
 
     SignalBuffer();
 
-    //--------------------------------------------------
-    // Maximum Samples
-    //--------------------------------------------------
-
-    static constexpr uint16_t MAX_SAMPLES = 256;
+private:
 
     //--------------------------------------------------
-    // Sample Buffer
+    // Buffers
     //--------------------------------------------------
 
-    float _samples[MAX_SAMPLES];
+    float _raw[DSPConfig::FFT_SIZE];
+
+    float _working[DSPConfig::FFT_SIZE];
+
+    float _fft[DSPConfig::FFT_SIZE];
 
     //--------------------------------------------------
     // Sample Count

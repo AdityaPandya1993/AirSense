@@ -8,6 +8,11 @@
 
 #include <WiFi.h>
 
+extern "C"
+{
+#include "esp_wifi.h"
+}
+
 WiFiManager&
 WiFiManager::shared()
 {
@@ -92,8 +97,23 @@ void WiFiManager::begin()
     Serial.print("MAC : ");
     Serial.println(WiFi.macAddress());
 
+    Serial.print("IP Address : ");
+    Serial.println(WiFi.localIP());
+
+    //--------------------------------------------------
+    // Lock WiFi Channel
+    //--------------------------------------------------
+
+    esp_wifi_set_channel(
+        WiFi.channel(),
+        WIFI_SECOND_CHAN_NONE
+    );
+
+    Serial.print("Locked Channel : ");
+    Serial.println(WiFi.channel());
     _ready = true;
     Serial.println(">>>>>>>> EXIT WiFiManager::begin() <<<<<<<<");
+    
 }
 
 bool WiFiManager::isReady() const

@@ -1,9 +1,9 @@
-// //
-// //  AirSenseFirmware.ino
-// //  AirSense Firmware
-// //
-// //  Created by Aditya Pandya
-// //
+//
+//  AirSenseFirmware.ino
+//  AirSense Firmware
+//
+//  Created by Aditya Pandya
+//
 
 #include "Config.h"
 #include "Logger.h"
@@ -11,35 +11,41 @@
 #include "Protocol.h"
 #include "SerialManager.h"
 #include "DeviceController.h"
-#include "SimulationEngine.h"
+
 #include "WiFiManager.h"
 #include "CSIReceiver.h"
 #include "CSIDriver.h"
 #include "RawCSIRecorder.h"
+
 #include "PacketAnalyzer.h"
-#include "SignalBufferV3.h"
-#include "FFTWorkspace.h"
-
-#include "FFTButterflyV3.h"
-#include "FFTMagnitudeV3.h"
-
-#include "PeakDetectorV3.h"
-#include "FrequencyAnalyzerV3.h"
-
-#include "HeartRateEstimatorV3.h"
-#include "BreathingEstimatorV3.h"
-
-#include "ConfidenceEngineV3.h"
 
 unsigned long lastHeartbeat = 0;
 
+uint64_t lastAnalyzedPacketCount = 0;
+
+////////////////////////////////////////////////////////
+// Setup
+////////////////////////////////////////////////////////
+
 void setup()
 {
+    //--------------------------------------------------
+    // Logger
+    //--------------------------------------------------
+
     Logger::begin();
 
     Logger::info("Boot Complete");
 
+    //--------------------------------------------------
+    // WiFi
+    //--------------------------------------------------
+
     WiFiManager::shared().begin();
+
+    //--------------------------------------------------
+    // CSI Pipeline
+    //--------------------------------------------------
 
     RawCSIRecorder::shared().begin();
 
@@ -50,6 +56,10 @@ void setup()
     PacketAnalyzer::shared().begin();
 
     Logger::info("WiFi Initialized");
+
+    //--------------------------------------------------
+    // Device Info
+    //--------------------------------------------------
 
     DeviceInfo device;
 
@@ -63,46 +73,68 @@ void setup()
     device.freeHeap = ESP.getFreeHeap();
     device.uptime = 0;
 
+    //--------------------------------------------------
+    // Debug
+    //--------------------------------------------------
+
     Serial.print("CSI Ready = ");
 
     Serial.println(
-    CSIReceiver::shared().isEnabled()
-        ? "YES"
-        : "NO"
-);
-
-    Logger::info("Device Model Created");
-
-
-
-    SerialManager::begin();
-
-    DeviceController::shared().setPersonCount(2);
-
-    DeviceController::shared().setMotion("Walking");
-
-    DeviceController::shared().setHeartRate(81);
-
-    DeviceController::shared().setBreathing(18);
+        CSIReceiver::shared().isEnabled()
+            ? "YES"
+            : "NO"
+    );
 
     Serial.print("WiFi Ready = ");
 
-Serial.println(
-    WiFiManager::shared().isReady()
-        ? "YES"
-        : "NO"
-);
+    Serial.println(
+        WiFiManager::shared().isReady()
+            ? "YES"
+            : "NO"
+    );
+
+    Logger::info("Device Model Created");
+
+    //--------------------------------------------------
+    // Serial Protocol
+    //--------------------------------------------------
+
+    SerialManager::begin();
+
 }
+
+////////////////////////////////////////////////////////
+// Loop
+////////////////////////////////////////////////////////
 
 void loop()
 {
-    SimulationEngine::update();
-    
+    //--------------------------------------------------
+    // Incoming Commands
+    //--------------------------------------------------
+
     SerialManager::processIncomingCommand();
 
-    PacketAnalyzer::shared().analyze(
-    RawCSIRecorder::shared().latestFrame()
-);
+    //--------------------------------------------------
+    // Analyze Only New CSI Packet
+    //--------------------------------------------------
+
+    if (
+        RawCSIRecorder::shared().hasFrame() &&
+        RawCSIRecorder::shared().packetCount() != lastAnalyzedPacketCount
+    )
+    {
+        lastAnalyzedPacketCount =
+            RawCSIRecorder::shared().packetCount();
+
+        PacketAnalyzer::shared().analyze(
+            RawCSIRecorder::shared().latestFrame()
+        );
+    }
+
+    //--------------------------------------------------
+    // Heartbeat
+    //--------------------------------------------------
 
     if (millis() - lastHeartbeat >= 1000)
     {
@@ -111,5 +143,3 @@ void loop()
         SerialManager::sendHeartbeat();
     }
 }
-
-

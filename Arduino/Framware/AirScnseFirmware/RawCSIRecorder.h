@@ -38,7 +38,7 @@ public:
     // Information
     //--------------------------------------------------
 
-    const RawCSIFrame& latestFrame() const;
+    RawCSIFrame latestFrame() const;
 
     uint64_t packetCount() const;
 
